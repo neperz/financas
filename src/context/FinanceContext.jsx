@@ -56,14 +56,24 @@ export function FinanceProvider({ children }) {
   const toggleDarkMode = () => setDarkMode(prev => !prev);
 
   const resetToDefault = () => {
-    setData(INITIAL_FINANCIAL_DATA);
+    const deepClone = JSON.parse(JSON.stringify(INITIAL_FINANCIAL_DATA));
+    setData(deepClone);
     localStorage.removeItem('plano_financeiro_data');
   };
 
   const clearAllData = () => {
     localStorage.clear();
     sessionStorage.clear();
-    setData(INITIAL_FINANCIAL_DATA);
+    const deepClone = JSON.parse(JSON.stringify(INITIAL_FINANCIAL_DATA));
+    setData(deepClone);
+  };
+
+  const clearAllDespesas = () => {
+    const deepClone = JSON.parse(JSON.stringify(INITIAL_FINANCIAL_DATA));
+    setData(prev => ({
+      ...prev,
+      despesas: deepClone.despesas
+    }));
   };
 
   // Export / Import Backup JSON
@@ -298,6 +308,7 @@ export function FinanceProvider({ children }) {
       toggleDarkMode,
       resetToDefault,
       clearAllData,
+      clearAllDespesas,
       exportDataJSON,
       importDataJSON,
       getRendaLiquida,

@@ -39,7 +39,8 @@ export default function ExpensesSection() {
     getRendaLiquida,
     updateItemDespesa,
     addItemDespesa,
-    deleteItemDespesa
+    deleteItemDespesa,
+    clearAllDespesas
   } = useFinance();
 
   const [expandedCat, setExpandedCat] = useState({});
@@ -81,13 +82,28 @@ export default function ExpensesSection() {
           </p>
         </div>
 
-        {/* Global Total Badge */}
-        <div style={{ textAlign: 'right' }}>
-          <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)', textTransform: 'uppercase' }}>
-            Total Geral das Despesas
-          </span>
-          <div style={{ fontSize: '1.4rem', fontWeight: 'bold', color: 'var(--accent-blue)' }}>
-            {formatCurrency(totalGastos)} <span style={{ fontSize: '0.9rem', color: 'var(--text-muted)' }}>({totalPct.toFixed(1)}%)</span>
+        {/* Global Total Badge & Clear Button */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+          <button
+            onClick={() => {
+              if (window.confirm('Deseja remover todos os itens de despesas importados e restaurar as categorias padrão?')) {
+                clearAllDespesas();
+              }
+            }}
+            className="btn btn-outline"
+            style={{ fontSize: '0.78rem', borderColor: 'rgba(244,63,94,0.4)', color: 'var(--accent-rose)', padding: '6px 12px' }}
+            title="Limpar itens importados e restaurar despesas padrão"
+          >
+            <Trash2 size={14} /> Resetar Despesas
+          </button>
+
+          <div style={{ textAlign: 'right' }}>
+            <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)', textTransform: 'uppercase' }}>
+              Total Geral das Despesas
+            </span>
+            <div style={{ fontSize: '1.4rem', fontWeight: 'bold', color: 'var(--accent-blue)' }}>
+              {formatCurrency(totalGastos)} <span style={{ fontSize: '0.9rem', color: 'var(--text-muted)' }}>({totalPct.toFixed(1)}%)</span>
+            </div>
           </div>
         </div>
       </div>
