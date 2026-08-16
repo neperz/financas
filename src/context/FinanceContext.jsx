@@ -65,14 +65,22 @@ export function FinanceProvider({ children }) {
     localStorage.clear();
     sessionStorage.clear();
     const deepClone = JSON.parse(JSON.stringify(INITIAL_FINANCIAL_DATA));
+    deepClone.despesas = deepClone.despesas.map(cat => ({
+      ...cat,
+      itens: []
+    }));
+    deepClone.reservaEmergencia.reservaAtual = 0;
+    deepClone.objetivos = [];
     setData(deepClone);
   };
 
   const clearAllDespesas = () => {
-    const deepClone = JSON.parse(JSON.stringify(INITIAL_FINANCIAL_DATA));
     setData(prev => ({
       ...prev,
-      despesas: deepClone.despesas
+      despesas: prev.despesas.map(cat => ({
+        ...cat,
+        itens: []
+      }))
     }));
   };
 
