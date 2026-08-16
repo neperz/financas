@@ -13,6 +13,7 @@ import HealthIndicatorsSection from './components/HealthIndicatorsSection';
 import FinancialRadarChart from './components/FinancialRadarChart';
 import CompoundInterestSimulator from './components/CompoundInterestSimulator';
 import AIDiagnosticSection from './components/AIDiagnosticSection';
+import WealthExponentiationSection from './components/WealthExponentiationSection';
 import Footer from './components/Footer';
 
 function MainAppContent() {
@@ -36,6 +37,7 @@ function MainAppContent() {
 
             <AIDiagnosticSection />
             <ExpensesSection />
+            <WealthExponentiationSection />
             <CompoundInterestSimulator />
 
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(450px, 1fr))', gap: '24px', marginBottom: '24px' }}>
@@ -64,16 +66,25 @@ function MainAppContent() {
           </>
         )}
 
-        {/* Tab 4: 3. Objetivos & Investimentos */}
+        {/* Tab 4: 3. Renda Extra & Aceleração */}
+        {activeTab === 'exponentiation' && (
+          <>
+            <WealthExponentiationSection />
+            <CompoundInterestSimulator />
+          </>
+        )}
+
+        {/* Tab 5: 4. Objetivos & Investimentos */}
         {activeTab === 'goals' && (
           <>
+            <WealthExponentiationSection />
             <CompoundInterestSimulator />
             <GoalsSection />
             <PatrimonyFutureSection />
           </>
         )}
 
-        {/* Tab 5: 4. Raio-X & Radar da Saúde */}
+        {/* Tab 6: 5. Raio-X & Radar da Saúde */}
         {activeTab === 'radar' && (
           <>
             <FinancialRadarChart />
@@ -82,7 +93,7 @@ function MainAppContent() {
           </>
         )}
 
-        {/* Tab 6: 5. Benchmarks & Fases da Vida */}
+        {/* Tab 7: 6. Benchmarks & Fases da Vida */}
         {activeTab === 'benchmarks' && (
           <>
             <BenchmarksSection />

@@ -7,8 +7,8 @@ import {
   Target,
   PieChart,
   BarChart3,
-  CheckCircle2,
-  ArrowRight
+  Zap,
+  TrendingUp
 } from 'lucide-react';
 
 export default function FinancialJourneyNav() {
@@ -19,9 +19,10 @@ export default function FinancialJourneyNav() {
     { id: 'overview', label: 'Visão Geral (Dashboard)', icon: LayoutDashboard },
     { id: 'budget', label: '1. Orçamento Mensal', icon: Wallet },
     { id: 'reserve', label: '2. Reserva de Emergência', icon: Shield },
-    { id: 'goals', label: '3. Objetivos & Investimentos', icon: Target },
-    { id: 'radar', label: '4. Raio-X & Radar de Saúde', icon: PieChart },
-    { id: 'benchmarks', label: '5. Benchmarks & Fases', icon: BarChart3 }
+    { id: 'exponentiation', label: '3. Renda Extra & Aceleração', icon: Zap },
+    { id: 'goals', label: '4. Objetivos & Investimentos', icon: Target },
+    { id: 'radar', label: '5. Raio-X & Radar de Saúde', icon: PieChart },
+    { id: 'benchmarks', label: '6. Benchmarks & Fases', icon: BarChart3 }
   ];
 
   const getScoreBadgeColor = (score) => {
