@@ -1,16 +1,16 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useFinance } from '../context/FinanceContext';
 import { fetchAllMeuPluggyTransactions } from '../services/pluggyService';
-import { loginWithGooglePluggy, checkOAuthRedirectToken } from '../services/googleAuthService';
+import { loginWithGooglePluggy } from '../services/googleAuthService';
 import { fetchMockOpenFinanceStatements } from '../services/openFinanceService';
 import { parseBankStatementFile } from '../services/ofxParserService';
 import { extractBearerToken, parseJwtPayload } from '../services/jwtHelper';
-import { ShieldCheck, Plug, FileText, Upload, RefreshCw, X, Check, Sparkles, AlertCircle, ArrowRight, UserCheck, Key, Lock, Copy, Terminal } from 'lucide-react';
+import { ShieldCheck, Plug, FileText, Upload, RefreshCw, X, Check, Sparkles, AlertCircle, ArrowRight, UserCheck, Key, Lock, Copy, Terminal, ExternalLink } from 'lucide-react';
 
 export default function PluggyConnectModal({ isOpen, onClose }) {
   const { data, updateItemDespesa, addItemDespesa } = useFinance();
 
-  const [mode, setMode] = useState('google'); // 'google', 'meu_pluggy', 'ofx_file', 'sandbox'
+  const [mode, setMode] = useState('google'); // 'google', 'ofx_file', 'sandbox'
   const [rawInputToken, setRawInputToken] = useState('');
   const [extractedToken, setExtractedToken] = useState('');
   const [jwtInfo, setJwtInfo] = useState(null);
@@ -23,29 +23,10 @@ export default function PluggyConnectModal({ isOpen, onClose }) {
 
   const fileInputRef = useRef(null);
 
-  // Check for Google OAuth Token in URL on Load
-  useEffect(() => {
-    const oauthResult = checkOAuthRedirectToken();
-    if (oauthResult && oauthResult.accessToken) {
-      setIsSyncing(true);
-      setStep(3);
-      fetchAllMeuPluggyTransactions(oauthResult.accessToken)
-        .then(txs => {
-          setTransactions(txs);
-          setIsSyncing(false);
-        })
-        .catch(err => {
-          console.error('OAuth sync error:', err);
-          setErrorMessage('Não foi possível carregar as contas diretamente via Google. Verifique se sua conta do meu.pluggy.ai possui conexões ativas.');
-          setIsSyncing(false);
-        });
-    }
-  }, []);
-
   if (!isOpen) return null;
 
   const handleGoogleLogin = () => {
-    setIsSyncing(true);
+    setErrorMessage('');
     loginWithGooglePluggy();
   };
 
@@ -66,7 +47,7 @@ export default function PluggyConnectModal({ isOpen, onClose }) {
     setErrorMessage('');
     const tokenToUse = extractedToken || rawInputToken;
 
-    if (!tokenToUse && mode === 'meu_pluggy') {
+    if (!tokenToUse) {
       setErrorMessage('Insira seu Bearer Token ou cURL do meu.pluggy.ai');
       return;
     }
@@ -84,16 +65,14 @@ export default function PluggyConnectModal({ isOpen, onClose }) {
         return;
       }
 
-      if (mode === 'meu_pluggy') {
-        const txs = await fetchAllMeuPluggyTransactions(tokenToUse);
-        if (txs.length > 0) {
-          setTransactions(txs);
-          setIsSyncing(false);
-          setStep(3);
-        } else {
-          setErrorMessage('Nenhuma transação foi retornada para o token informado.');
-          setIsSyncing(false);
-        }
+      const txs = await fetchAllMeuPluggyTransactions(tokenToUse);
+      if (txs.length > 0) {
+        setTransactions(txs);
+        setIsSyncing(false);
+        setStep(3);
+      } else {
+        setErrorMessage('Nenhuma transação foi retornada para o token informado.');
+        setIsSyncing(false);
       }
     } catch (err) {
       console.error('Erro na conexão meu.pluggy.ai:', err);
@@ -168,7 +147,7 @@ export default function PluggyConnectModal({ isOpen, onClose }) {
       padding: '16px'
     }}>
       <div className="glass-card" style={{
-        maxWidth: '700px',
+        maxWidth: '720px',
         width: '100%',
         padding: '28px',
         background: 'var(--bg-secondary)',
@@ -181,10 +160,10 @@ export default function PluggyConnectModal({ isOpen, onClose }) {
           <div>
             <h3 style={{ fontSize: '1.3rem', color: 'var(--text-primary)', fontWeight: 800, display: 'flex', alignItems: 'center', gap: '8px' }}>
               <Plug color="var(--accent-blue)" size={24} />
-              Sincronização 1-Clique meu.pluggy.ai
+              Conexão com o Google & meu.pluggy.ai
             </h3>
             <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
-              Login rápido via Google para importação automática de transações reais
+              Autenticação oficial via Google / Auth0 `meu.pluggy.ai`
             </span>
           </div>
 
@@ -196,7 +175,7 @@ export default function PluggyConnectModal({ isOpen, onClose }) {
         {/* STEP 1: Select Mode */}
         {step === 1 && (
           <div>
-            {/* Primary 1-Click Google Auth Option */}
+            {/* Primary Google Auth Option */}
             <div style={{
               background: 'linear-gradient(135deg, rgba(66, 133, 244, 0.12) 0%, rgba(52, 168, 83, 0.12) 100%)',
               border: '1px solid rgba(66, 133, 244, 0.3)',
@@ -226,78 +205,89 @@ export default function PluggyConnectModal({ isOpen, onClose }) {
               </div>
 
               <h4 style={{ fontSize: '1.1rem', color: 'var(--text-primary)', fontWeight: 800, marginBottom: '6px' }}>
-                Entrar com o Google (Sincronização Direta)
+                1. Autenticar com o Google no meu.pluggy.ai
               </h4>
-              <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', marginBottom: '18px', maxWidth: '480px', margin: '0 auto 18px auto', lineHeight: 1.5 }}>
-                Conecte-se com a mesma conta do Google utilizada no <strong>meu.pluggy.ai</strong> para autorizar a leitura das suas transações bancárias com 1 clique!
+              <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', marginBottom: '18px', maxWidth: '500px', margin: '0 auto 18px auto', lineHeight: 1.5 }}>
+                Clique abaixo para abrir o login oficial do Google no <strong>meu.pluggy.ai</strong> e autorizar a leitura das suas contas bancárias:
               </p>
 
+              <button
+                onClick={handleGoogleLogin}
+                className="btn btn-primary"
+                style={{
+                  padding: '12px 28px',
+                  fontSize: '0.95rem',
+                  background: '#ffffff',
+                  color: '#1f2937',
+                  border: '1px solid #d1d5db',
+                  fontWeight: 700,
+                  boxShadow: 'var(--shadow-sm)',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '10px'
+                }}
+              >
+                <span>Entrar com o Google no meu.pluggy.ai</span>
+                <ExternalLink size={16} />
+              </button>
+            </div>
+
+            {/* Input Token / cURL Section */}
+            <div style={{ background: 'var(--bg-primary)', padding: '20px', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-color)', marginBottom: '20px' }}>
+              <h4 style={{ fontSize: '0.95rem', color: 'var(--text-primary)', fontWeight: 700, marginBottom: '6px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <Terminal size={16} color="var(--accent-blue)" />
+                2. Cole o cURL ou Token de Autenticação:
+              </h4>
+              <p style={{ fontSize: '0.82rem', color: 'var(--text-secondary)', marginBottom: '12px', lineHeight: 1.4 }}>
+                Cole o comando <strong>cURL</strong> (copiado do DevTools F12 do meu.pluggy.ai) ou o seu Bearer token abaixo. Nosso extrator identificará o token instantaneamente:
+              </p>
+
+              <textarea
+                rows={3}
+                placeholder="Cole aqui a linha cURL ou seu Bearer token (curl 'https://my-api.pluggy.ai...' -H 'Authorization: Bearer eyJ...')..."
+                value={rawInputToken}
+                onChange={(e) => handleTokenInputChange(e.target.value)}
+                style={{ width: '100%', fontSize: '0.8rem', fontFamily: 'monospace', padding: '10px', marginBottom: '10px' }}
+              />
+
+              {extractedToken && (
+                <div style={{ background: 'rgba(16, 185, 129, 0.12)', border: '1px solid rgba(16, 185, 129, 0.3)', padding: '10px', borderRadius: 'var(--radius-sm)', marginBottom: '12px', fontSize: '0.8rem', color: 'var(--accent-green)' }}>
+                  ✓ Token JWT extraído! Usuário: <strong>{jwtInfo ? (jwtInfo['https://api.pluggy.ai/email'] || jwtInfo.sub) : 'Autenticado'}</strong>
+                </div>
+              )}
+
+              {errorMessage && (
+                <div style={{ color: 'var(--accent-rose)', fontSize: '0.8rem', marginBottom: '12px', background: 'rgba(244,63,94,0.1)', padding: '8px', borderRadius: 'var(--radius-sm)' }}>
+                  ⚠️ {errorMessage}
+                </div>
+              )}
+
               {isSyncing ? (
-                <div style={{ padding: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px' }}>
-                  <RefreshCw size={20} color="var(--accent-blue)" style={{ animation: 'spin 1s linear infinite' }} />
-                  <span style={{ fontSize: '0.9rem', color: 'var(--accent-blue)', fontWeight: 600 }}>
-                    Redirecionando para login seguro no Google...
-                  </span>
+                <div style={{ padding: '10px', textAlign: 'center', color: 'var(--accent-blue)', fontWeight: 600 }}>
+                  <RefreshCw size={20} style={{ animation: 'spin 1s linear infinite', marginRight: '8px' }} />
+                  Buscando transações reais em my-api.pluggy.ai...
                 </div>
               ) : (
-                <button
-                  onClick={handleGoogleLogin}
-                  className="btn btn-primary"
-                  style={{
-                    padding: '12px 28px',
-                    fontSize: '0.95rem',
-                    background: '#ffffff',
-                    color: '#1f2937',
-                    border: '1px solid #d1d5db',
-                    fontWeight: 700,
-                    boxShadow: 'var(--shadow-sm)'
-                  }}
-                >
-                  Entrar com o Google <ArrowRight size={16} />
+                <button onClick={handleConnectMeuPluggy} className="btn btn-primary" style={{ width: '100%', padding: '10px', fontSize: '0.9rem' }}>
+                  Sincronizar Extrato <ArrowRight size={16} />
                 </button>
               )}
             </div>
 
-            {/* Secondary Options */}
-            <div style={{ display: 'flex', gap: '8px', marginBottom: '16px' }}>
+            {/* Alternative OFX File Upload */}
+            <div style={{ textAlign: 'center' }}>
               <button
                 type="button"
-                onClick={() => setMode(mode === 'meu_pluggy' ? 'google' : 'meu_pluggy')}
+                onClick={() => setMode(mode === 'ofx_file' ? 'google' : 'ofx_file')}
                 className="btn btn-outline"
-                style={{ flex: 1, fontSize: '0.78rem' }}
+                style={{ fontSize: '0.8rem' }}
               >
-                {mode === 'meu_pluggy' ? 'Ocultar Opção cURL' : 'Inserir cURL / Token Manual'}
-              </button>
-
-              <button
-                type="button"
-                onClick={() => setMode('ofx_file')}
-                className={`btn ${mode === 'ofx_file' ? 'btn-primary' : 'btn-outline'}`}
-                style={{ flex: 1, fontSize: '0.78rem' }}
-              >
-                <FileText size={14} /> Importar OFX / CSV
+                <FileText size={14} /> Preferir carregar arquivo de extrato .OFX / .CSV
               </button>
             </div>
 
-            {/* Manual Token Option */}
-            {mode === 'meu_pluggy' && (
-              <div style={{ background: 'var(--bg-primary)', padding: '16px', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-color)', marginBottom: '16px' }}>
-                <textarea
-                  rows={3}
-                  placeholder="Cole o cURL do navegador ou seu Bearer Token..."
-                  value={rawInputToken}
-                  onChange={(e) => handleTokenInputChange(e.target.value)}
-                  style={{ width: '100%', fontSize: '0.8rem', fontFamily: 'monospace' }}
-                />
-                <button onClick={handleConnectMeuPluggy} className="btn btn-primary" style={{ width: '100%', marginTop: '8px' }}>
-                  Sincronizar via Token Manual
-                </button>
-              </div>
-            )}
-
-            {/* OFX File Option */}
             {mode === 'ofx_file' && (
-              <div style={{ background: 'var(--bg-primary)', padding: '20px', borderRadius: 'var(--radius-md)', border: '2px dashed var(--border-color)', textAlign: 'center' }}>
+              <div style={{ background: 'var(--bg-primary)', padding: '20px', borderRadius: 'var(--radius-md)', border: '2px dashed var(--border-color)', textAlign: 'center', marginTop: '16px' }}>
                 <Upload size={32} color="var(--accent-blue)" style={{ marginBottom: '8px' }} />
                 <h4 style={{ fontSize: '0.95rem', color: 'var(--text-primary)', fontWeight: 700, marginBottom: '4px' }}>
                   Carregar Extrato Bancário (.OFX / .CSV)
@@ -328,7 +318,7 @@ export default function PluggyConnectModal({ isOpen, onClose }) {
               <div>
                 <h4 style={{ fontSize: '1.05rem', color: 'var(--text-primary)', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '6px' }}>
                   <UserCheck size={18} color="var(--accent-blue)" />
-                  Extrato Importado via Google / meu.pluggy.ai
+                  Extrato Importado ({transactions[0]?.source || 'meu.pluggy.ai'})
                 </h4>
                 <span style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>
                   Transações lidas e mapeadas para as 8 categorias de despesas do projeto.
