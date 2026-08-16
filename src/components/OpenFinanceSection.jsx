@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useFinance } from '../context/FinanceContext';
-import { ShieldCheck, Building2, Plug, Sparkles } from 'lucide-react';
+import { ShieldCheck, Building2, Plug, Sparkles, UserCheck } from 'lucide-react';
 import OpenFinanceModal from './OpenFinanceModal';
 import PluggyConnectModal from './PluggyConnectModal';
 
@@ -28,33 +28,33 @@ export default function OpenFinanceSection() {
         <div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
             <h3 style={{ fontSize: '1.05rem', fontWeight: 800, color: 'var(--text-primary)' }}>
-              Open Finance Brasil & Conexão Pluggy
+              Open Finance Brasil & meu.pluggy.ai (MCP Protocol)
             </h3>
             <span className="status-badge verde">
-              <Sparkles size={10} /> Banco Central
+              <Sparkles size={10} /> Banco Central & MCP
             </span>
           </div>
           <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', marginTop: '2px' }}>
-            Sincronize automaticamente Banco do Brasil, Nubank, Banco Inter, Itaú, Bradesco, C6, XP e mais de 100 bancos.
+            Sincronize automaticamente com sua conta pessoal meu.pluggy.ai ou conecte Banco do Brasil, Nubank, Inter, Itaú e Bradesco.
           </p>
         </div>
       </div>
 
       <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
         <button
-          onClick={() => setIsOpenFinanceModalOpen(true)}
+          onClick={() => setIsPluggyModalOpen(true)}
           className="btn btn-primary"
           style={{ padding: '10px 16px', fontSize: '0.85rem' }}
         >
-          <Building2 size={16} /> Open Finance Brasil
+          <UserCheck size={16} /> meu.pluggy.ai (Conta Pessoal MCP)
         </button>
 
         <button
-          onClick={() => setIsPluggyModalOpen(true)}
+          onClick={() => setIsOpenFinanceModalOpen(true)}
           className="btn btn-outline"
-          style={{ padding: '10px 16px', fontSize: '0.85rem', borderColor: 'var(--accent-blue)', color: 'var(--accent-blue)' }}
+          style={{ padding: '10px 16px', fontSize: '0.85rem' }}
         >
-          <Plug size={16} /> Conectar via Pluggy AI
+          <Building2 size={16} /> Open Finance Direto
         </button>
       </div>
 
