@@ -60,6 +60,12 @@ export function FinanceProvider({ children }) {
     localStorage.removeItem('plano_financeiro_data');
   };
 
+  const clearAllData = () => {
+    localStorage.clear();
+    sessionStorage.clear();
+    setData(INITIAL_FINANCIAL_DATA);
+  };
+
   // Export / Import Backup JSON
   const exportDataJSON = () => {
     const jsonStr = JSON.stringify(data, null, 2);
@@ -291,6 +297,7 @@ export function FinanceProvider({ children }) {
       setActiveTab,
       toggleDarkMode,
       resetToDefault,
+      clearAllData,
       exportDataJSON,
       importDataJSON,
       getRendaLiquida,

@@ -16,7 +16,8 @@ import {
   Upload,
   TrendingUp,
   Globe,
-  Info
+  Info,
+  Trash2
 } from 'lucide-react';
 import html2pdf from 'html2pdf.js';
 import GoldenRulesModal from './GoldenRulesModal';
@@ -29,6 +30,7 @@ export default function Header() {
     darkMode,
     toggleDarkMode,
     resetToDefault,
+    clearAllData,
     exportDataJSON,
     importDataJSON,
     getRendaLiquida,
@@ -218,6 +220,21 @@ export default function Header() {
               style={{ padding: '8px 12px' }}
             >
               <RotateCcw size={16} />
+            </button>
+
+            {/* Clear All Data */}
+            <button
+              onClick={() => {
+                if (window.confirm('ATENÇÃO: Esta ação apaga permanentemente todos os dados armazenados e limpa o orçamento! Deseja continuar?')) {
+                  clearAllData();
+                  alert('Todos os dados armazenados foram limpos com sucesso!');
+                }
+              }}
+              className="btn btn-outline"
+              title="Apagar Todos os Dados Armazenados"
+              style={{ padding: '8px 12px', borderColor: 'rgba(244,63,94,0.4)', color: 'var(--accent-rose)' }}
+            >
+              <Trash2 size={16} />
             </button>
           </div>
         </div>
