@@ -1,4 +1,4 @@
-# 📊 Plano Financeiro Familiar
+# 📊 Plano Financeiro Familiar v1.0.0
 
 Aplicação interativa de gestão e planejamento financeiro familiar, projetada para organização de orçamento, reserva de emergência, metas de longo prazo e diagnóstico de saúde financeira.
 
