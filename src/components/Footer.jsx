@@ -50,7 +50,7 @@ export default function Footer() {
           Fontes: IBGE, ANS, DIEESE, pesquisa de mercado e consultoria financeira.
         </p>
         <p style={{ marginTop: '4px' }}>
-          Aplicação de Planejamento Financeiro Familiar desenvolvida em React + Vite.
+          Aplicação de Planejamento Financeiro Familiar.
         </p>
       </div>
     </footer>

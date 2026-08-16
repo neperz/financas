@@ -1,16 +1,13 @@
-# React + Vite
+# 📊 Plano Financeiro Familiar
 
-This template provides a minimal setup to get React working in Vite with HMR and some Oxlint rules.
+Aplicação interativa de gestão e planejamento financeiro familiar, projetada para organização de orçamento, reserva de emergência, metas de longo prazo e diagnóstico de saúde financeira.
 
-Currently, two official plugins are available:
+## 🚀 Funcionalidades
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
-
-## React Compiler
-
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
-
-## Expanding the Oxlint configuration
-
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and Oxlint's TypeScript related rules in your project.
+- **Dashboard Integrado**: Indicadores chave de saúde financeira (Renda, Gastos, Poupança, Taxa de Poupança).
+- **Radar da Saúde Financeira**: Gráfico comparativo em radar (Teia de Aranha) entre o padrão ideal e a situação atual.
+- **Gerenciador de Despesas Mensais**: Detalhamento por 8 categorias com faixas percentuais ideais e cálculo automático de status (Saudável, Atenção, Alerta).
+- **Calculadora de Reserva de Emergência**: Projeção e acompanhamento para 9 a 12 meses de cobertura.
+- **Objetivos da Família**: Planejamento de conquistas de curto, médio e longo prazo com análise de viabilidade dos aportes.
+- **Comparativo de Benchmarks**: Matriz por nível de renda (R$ 10k, 20k, 30k e 50k).
+- **Orientador por Fase da Vida**: Recomendações personalizadas para o momento familiar.
