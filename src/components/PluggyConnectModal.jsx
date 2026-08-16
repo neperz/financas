@@ -1,11 +1,11 @@
 import React, { useState, useRef } from 'react';
 import { useFinance } from '../context/FinanceContext';
-import { fetchAllMeuPluggyTransactions } from '../services/pluggyService';
+import { fetchAllMeuPluggyTransactions, fetchMeuPluggyInvestments } from '../services/pluggyService';
 import { loginWithGooglePluggy } from '../services/googleAuthService';
 import { fetchMockOpenFinanceStatements } from '../services/openFinanceService';
 import { parseBankStatementFile } from '../services/ofxParserService';
 import { extractBearerToken, parseJwtPayload } from '../services/jwtHelper';
-import { ShieldCheck, Plug, FileText, Upload, RefreshCw, X, Check, Sparkles, AlertCircle, ArrowRight, UserCheck, Key, Lock, Copy, Terminal, ExternalLink, Calendar } from 'lucide-react';
+import { ShieldCheck, Plug, FileText, Upload, RefreshCw, X, Check, Sparkles, AlertCircle, ArrowRight, UserCheck, Key, Lock, Copy, Terminal, ExternalLink, Calendar, TrendingUp, PieChart } from 'lucide-react';
 
 const getRecentMonths = () => {
   const months = [];
@@ -24,7 +24,7 @@ const getRecentMonths = () => {
 };
 
 export default function PluggyConnectModal({ isOpen, onClose }) {
-  const { data, updateItemDespesa, addItemDespesa } = useFinance();
+  const { data, updateItemDespesa, addItemDespesa, updatePatrimonioSituacao } = useFinance();
 
   const availableMonths = getRecentMonths();
   const [selectedMonth, setSelectedMonth] = useState(availableMonths[0].value);
@@ -35,6 +35,7 @@ export default function PluggyConnectModal({ isOpen, onClose }) {
   const [jwtInfo, setJwtInfo] = useState(null);
   const [step, setStep] = useState(1);
   const [transactions, setTransactions] = useState([]);
+  const [investments, setInvestments] = useState([]);
   const [isSyncing, setIsSyncing] = useState(false);
   const [syncedSuccess, setSyncedSuccess] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
@@ -84,14 +85,19 @@ export default function PluggyConnectModal({ isOpen, onClose }) {
         return;
       }
 
-      const txs = await fetchAllMeuPluggyTransactions(tokenToUse, { selectedMonth });
-      if (txs.length > 0) {
-        setTransactions(txs);
-        setIsSyncing(false);
+      const [txs, invs] = await Promise.all([
+        fetchAllMeuPluggyTransactions(tokenToUse, { selectedMonth }),
+        fetchMeuPluggyInvestments(tokenToUse).catch(() => [])
+      ]);
+
+      setTransactions(txs);
+      setInvestments(invs);
+      setIsSyncing(false);
+
+      if (txs.length > 0 || invs.length > 0) {
         setStep(3);
       } else {
-        setErrorMessage(`Nenhuma transação de saída foi encontrada para o mês selecionado (${selectedMonth}). Tente selecionar outro mês.`);
-        setIsSyncing(false);
+        setErrorMessage(`Nenhuma transação ou investimento foi encontrado para o mês selecionado (${selectedMonth}).`);
       }
     } catch (err) {
       console.error('Erro na conexão meu.pluggy.ai:', err);
@@ -133,6 +139,7 @@ export default function PluggyConnectModal({ isOpen, onClose }) {
   };
 
   const handleApplyToBudget = () => {
+    // 1. Group transactions by category and description
     const categoryTotalsMap = new Map();
 
     transactions.forEach(tx => {
@@ -172,8 +179,10 @@ export default function PluggyConnectModal({ isOpen, onClose }) {
   };
 
   const formatCurrency = (val) => {
-    return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(val);
+    return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(val || 0);
   };
+
+  const totalInvestmentsBalance = investments.reduce((acc, inv) => acc + inv.balance, 0);
 
   return (
     <div style={{
@@ -188,7 +197,7 @@ export default function PluggyConnectModal({ isOpen, onClose }) {
       padding: '16px'
     }}>
       <div className="glass-card" style={{
-        maxWidth: '720px',
+        maxWidth: '740px',
         width: '100%',
         padding: '28px',
         background: 'var(--bg-secondary)',
@@ -204,7 +213,7 @@ export default function PluggyConnectModal({ isOpen, onClose }) {
               Conexão com o Google & meu.pluggy.ai
             </h3>
             <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
-              Autenticação oficial via Google / Auth0 `meu.pluggy.ai`
+              Sincronização de Transações Bancárias e Ativos de Investimentos reais
             </span>
           </div>
 
@@ -268,7 +277,7 @@ export default function PluggyConnectModal({ isOpen, onClose }) {
                 1. Autenticar com o Google no meu.pluggy.ai
               </h4>
               <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', marginBottom: '18px', maxWidth: '500px', margin: '0 auto 18px auto', lineHeight: 1.5 }}>
-                Clique abaixo para abrir o login oficial do Google no <strong>meu.pluggy.ai</strong> e autorizar a leitura das suas contas bancárias:
+                Clique abaixo para abrir o login oficial do Google no <strong>meu.pluggy.ai</strong> e autorizar a leitura das suas contas bancárias e ativos de investimento:
               </p>
 
               <button
@@ -299,7 +308,7 @@ export default function PluggyConnectModal({ isOpen, onClose }) {
                 2. Cole o cURL ou Token de Autenticação:
               </h4>
               <p style={{ fontSize: '0.82rem', color: 'var(--text-secondary)', marginBottom: '12px', lineHeight: 1.4 }}>
-                Cole o comando <strong>cURL</strong> (copiado do DevTools F12 do meu.pluggy.ai) ou o seu Bearer token abaixo para carregar as despesas do mês <strong>{availableMonths.find(m => m.value === selectedMonth)?.label || selectedMonth}</strong>:
+                Cole o comando <strong>cURL</strong> (copiado do DevTools F12 do meu.pluggy.ai) ou o seu Bearer token abaixo para carregar as despesas e investimentos do mês <strong>{availableMonths.find(m => m.value === selectedMonth)?.label || selectedMonth}</strong>:
               </p>
 
               <textarea
@@ -325,63 +334,56 @@ export default function PluggyConnectModal({ isOpen, onClose }) {
               {isSyncing ? (
                 <div style={{ padding: '10px', textAlign: 'center', color: 'var(--accent-blue)', fontWeight: 600 }}>
                   <RefreshCw size={20} style={{ animation: 'spin 1s linear infinite', marginRight: '8px' }} />
-                  Buscando transações do mês {selectedMonth} em my-api.pluggy.ai...
+                  Buscando extratos e carteira de investimentos em my-api.pluggy.ai...
                 </div>
               ) : (
                 <button onClick={handleConnectMeuPluggy} className="btn btn-primary" style={{ width: '100%', padding: '10px', fontSize: '0.9rem' }}>
-                  Sincronizar Extrato de {availableMonths.find(m => m.value === selectedMonth)?.label || selectedMonth} <ArrowRight size={16} />
+                  Sincronizar Extrato e Ativos de Investimento <ArrowRight size={16} />
                 </button>
               )}
             </div>
-
-            {/* Alternative OFX File Upload */}
-            <div style={{ textAlign: 'center' }}>
-              <button
-                type="button"
-                onClick={() => setMode(mode === 'ofx_file' ? 'google' : 'ofx_file')}
-                className="btn btn-outline"
-                style={{ fontSize: '0.8rem' }}
-              >
-                <FileText size={14} /> Preferir carregar arquivo de extrato .OFX / .CSV
-              </button>
-            </div>
-
-            {mode === 'ofx_file' && (
-              <div style={{ background: 'var(--bg-primary)', padding: '20px', borderRadius: 'var(--radius-md)', border: '2px dashed var(--border-color)', textAlign: 'center', marginTop: '16px' }}>
-                <Upload size={32} color="var(--accent-blue)" style={{ marginBottom: '8px' }} />
-                <h4 style={{ fontSize: '0.95rem', color: 'var(--text-primary)', fontWeight: 700, marginBottom: '4px' }}>
-                  Carregar Extrato Bancário (.OFX / .CSV)
-                </h4>
-                <input
-                  type="file"
-                  ref={fileInputRef}
-                  onChange={handleFileUpload}
-                  accept=".ofx,.csv,.json"
-                  style={{ display: 'none' }}
-                />
-                <button
-                  onClick={() => fileInputRef.current && fileInputRef.current.click()}
-                  className="btn btn-primary"
-                  style={{ padding: '8px 20px', fontSize: '0.85rem' }}
-                >
-                  Selecionar Arquivo
-                </button>
-              </div>
-            )}
           </div>
         )}
 
-        {/* STEP 3: Review Transactions */}
+        {/* STEP 3: Review Transactions & Investments */}
         {step === 3 && (
           <div>
+            {/* Investment Assets Card Banner */}
+            {investments.length > 0 && (
+              <div style={{ background: 'linear-gradient(135deg, rgba(16, 185, 129, 0.12) 0%, rgba(6, 182, 212, 0.12) 100%)', border: '1px solid rgba(16, 185, 129, 0.3)', borderRadius: 'var(--radius-md)', padding: '16px', marginBottom: '20px' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
+                  <h4 style={{ fontSize: '0.95rem', color: 'var(--text-primary)', fontWeight: 800, display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    <TrendingUp size={18} color="var(--accent-green)" />
+                    Carteira de Ativos de Investimentos Importada ({investments.length})
+                  </h4>
+                  <span style={{ fontSize: '1rem', fontWeight: 800, color: 'var(--accent-green)' }}>
+                    Total: {formatCurrency(totalInvestmentsBalance)}
+                  </span>
+                </div>
+
+                <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
+                  {investments.map((inv) => (
+                    <div key={inv.id} style={{ background: 'var(--bg-primary)', padding: '8px 12px', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border-color)', flex: 1, minWidth: '180px' }}>
+                      <div style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--accent-blue)' }}>{inv.code}</div>
+                      <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{inv.name}</div>
+                      <div style={{ fontSize: '0.85rem', fontWeight: 800, color: 'var(--text-primary)', marginTop: '4px' }}>
+                        {formatCurrency(inv.balance)}
+                        {inv.annualRate && <span style={{ fontSize: '0.7rem', color: 'var(--accent-green)', marginLeft: '6px' }}>({inv.annualRate}% a.a.)</span>}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
               <div>
                 <h4 style={{ fontSize: '1.05rem', color: 'var(--text-primary)', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '6px' }}>
                   <UserCheck size={18} color="var(--accent-blue)" />
-                  Extrato Importado - {availableMonths.find(m => m.value === selectedMonth)?.label || selectedMonth}
+                  Extrato de Despesas ({availableMonths.find(m => m.value === selectedMonth)?.label || selectedMonth})
                 </h4>
                 <span style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>
-                  Transações do período mapeadas para as 8 categorias de despesas do projeto.
+                  Transações bancárias classificadas nas 8 categorias de despesas do projeto.
                 </span>
               </div>
 
@@ -428,7 +430,7 @@ export default function PluggyConnectModal({ isOpen, onClose }) {
 
             {syncedSuccess ? (
               <div style={{ background: 'var(--status-verde-bg)', border: '1px solid rgba(16, 185, 129, 0.3)', padding: '14px', borderRadius: 'var(--radius-md)', textAlign: 'center', color: 'var(--accent-green)', fontWeight: 700 }}>
-                ✓ Transações de {availableMonths.find(m => m.value === selectedMonth)?.label || selectedMonth} sincronizadas!
+                ✓ Transações e carteira de ativos de investimentos sincronizados com sucesso!
               </div>
             ) : (
               <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end' }}>

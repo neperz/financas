@@ -87,6 +87,45 @@ export async function fetchMeuPluggyItemAccounts(itemId, bearerToken) {
   return await res.json();
 }
 
+// Fetch Investment Assets for user's connected items (Ações, ETFs, Fundos, Renda Fixa)
+export async function fetchMeuPluggyInvestments(bearerToken) {
+  const cleanToken = bearerToken.replace(/^Bearer\s+/i, '').trim();
+  const apiBase = getMyPluggyApiBase();
+  const items = await fetchMeuPluggyUserItems(bearerToken);
+
+  let allInvestments = [];
+
+  for (const item of items) {
+    try {
+      const res = await fetch(`${apiBase}/investments?itemId=${item.id}`, {
+        headers: {
+          'Accept': 'application/json',
+          'Authorization': `Bearer ${cleanToken}`
+        }
+      });
+      if (res.ok) {
+        const rawData = await res.json();
+        const list = Array.isArray(rawData) ? rawData : (rawData.results || []);
+        allInvestments = [...allInvestments, ...list];
+      }
+    } catch (e) {
+      console.warn(`Erro ao buscar investimentos do item ${item.id}:`, e);
+    }
+  }
+
+  return allInvestments.map(inv => ({
+    id: inv.id || 'inv_' + Math.random().toString(36).substring(2, 9),
+    code: inv.code || inv.name || 'Ativo Financeiro',
+    name: inv.name || inv.code || 'Ativo de Investimento',
+    type: inv.type || inv.subtype || 'INVESTMENT',
+    subtype: inv.subtype || '',
+    balance: Number(inv.balance || inv.amount || inv.value) || 0,
+    quantity: inv.quantity || 1,
+    annualRate: inv.lastTwelveMonthsRate || inv.annualRate || null,
+    source: 'meu.pluggy.ai (Open Finance)'
+  }));
+}
+
 // Fetch Transactions for a specific Account ID with Month & Date Filter support
 export async function fetchMeuPluggyAccountTransactions(accountId, bearerToken, options = {}) {
   const cleanToken = bearerToken.replace(/^Bearer\s+/i, '').trim();
