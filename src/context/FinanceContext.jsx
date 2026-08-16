@@ -21,6 +21,8 @@ export function FinanceProvider({ children }) {
     return savedMode ? savedMode === 'dark' : true;
   });
 
+  const [activeTab, setActiveTab] = useState('overview'); // overview, budget, reserve, goals, radar, insights
+
   useEffect(() => {
     localStorage.setItem('plano_financeiro_data', JSON.stringify(data));
   }, [data]);
@@ -42,7 +44,7 @@ export function FinanceProvider({ children }) {
   };
 
   // Helper calculation functions
-  const getRendaLiquida = () => data.perfil.rendaLiquidaMensal || 1;
+  const getRendaLiquida = () => Number(data.perfil.rendaLiquidaMensal) || 1;
 
   const getCategoriaTotal = (categoriaId) => {
     const cat = data.despesas.find(c => c.id === categoriaId);
@@ -68,7 +70,6 @@ export function FinanceProvider({ children }) {
         return { label: 'Saudável', level: 'verde' };
       }
       if (pct < categoria.idealPctMin) {
-        // e.g. Proteção 0.8% vs 5-10% ideal is very low -> alerta
         if (pct < categoria.idealPctMin * 0.5) return { label: 'Alerta (muito abaixo)', level: 'vermelho' };
         return { label: 'Atenção (abaixo)', level: 'amarelo' };
       }
@@ -90,6 +91,58 @@ export function FinanceProvider({ children }) {
 
   const getTaxaPoupanca = () => {
     return (getPoupancaMensal() / getRendaLiquida()) * 100;
+  };
+
+  // Connected Reserva calculations
+  const getReservaMeta = () => {
+    return getTotalGastos() * (data.reservaEmergencia.mesesRecomendados || 10);
+  };
+
+  const getReservaPctConcluido = () => {
+    const meta = getReservaMeta();
+    return Math.min(100, ((data.reservaEmergencia.reservaAtual || 0) / (meta || 1)) * 100);
+  };
+
+  const getMesesReservaAtual = () => {
+    const gastos = getTotalGastos();
+    return gastos > 0 ? (data.reservaEmergencia.reservaAtual / gastos) : 0;
+  };
+
+  // Connected Goals calculations
+  const getTotalAportesObjetivos = () => {
+    return data.objetivos.reduce((acc, item) => acc + (Number(item.aporteSugerido) || 0), 0);
+  };
+
+  // Dynamic Radar Score Calculation (Auto-Calculated connected to real numbers)
+  const getCalculatedRadarScores = () => {
+    const poupancaPct = getTaxaPoupanca();
+    const reservaPct = getReservaPctConcluido();
+    const protecaoPct = getCategoriaPct('protecao');
+    const totalAportes = getTotalAportesObjetivos();
+    const poupancaMensal = getPoupancaMensal();
+
+    // Score formulas
+    const scorePoupanca = Math.min(100, Math.max(0, Math.round((poupancaPct / 25) * 85)));
+    const scoreReserva = Math.min(100, Math.max(0, Math.round(reservaPct)));
+    const scoreDividas = 85; // Default healthy low debt
+    const scoreInvestimentos = data.patrimonioFuturo.filter(p => p.situacao === 'Ok' || p.situacao === 'Iniciar').length * 25;
+    const scoreProtecao = Math.min(100, Math.max(0, Math.round((protecaoPct / 5) * 80)));
+    const scorePlanejamento = totalAportes <= poupancaMensal && poupancaMensal > 0 ? 80 : 50;
+
+    return [
+      { subject: "Poupança", ideal: 90, situacao: data.radarHealth[0]?.situacao ?? scorePoupanca, autoScore: scorePoupanca },
+      { subject: "Reserva", ideal: 95, situacao: data.radarHealth[1]?.situacao ?? scoreReserva, autoScore: scoreReserva },
+      { subject: "Dívidas", ideal: 90, situacao: data.radarHealth[2]?.situacao ?? scoreDividas, autoScore: scoreDividas },
+      { subject: "Investimentos", ideal: 85, situacao: data.radarHealth[3]?.situacao ?? scoreInvestimentos, autoScore: scoreInvestimentos },
+      { subject: "Proteção", ideal: 80, situacao: data.radarHealth[4]?.situacao ?? scoreProtecao, autoScore: scoreProtecao },
+      { subject: "Planejamento", ideal: 90, situacao: data.radarHealth[5]?.situacao ?? scorePlanejamento, autoScore: scorePlanejamento }
+    ];
+  };
+
+  const getOverallHealthScore = () => {
+    const scores = getCalculatedRadarScores();
+    const sum = scores.reduce((acc, s) => acc + s.situacao, 0);
+    return Math.round(sum / scores.length);
   };
 
   // Updaters
@@ -180,6 +233,8 @@ export function FinanceProvider({ children }) {
     <FinanceContext.Provider value={{
       data,
       darkMode,
+      activeTab,
+      setActiveTab,
       toggleDarkMode,
       resetToDefault,
       getRendaLiquida,
@@ -189,6 +244,12 @@ export function FinanceProvider({ children }) {
       getTotalGastos,
       getPoupancaMensal,
       getTaxaPoupanca,
+      getReservaMeta,
+      getReservaPctConcluido,
+      getMesesReservaAtual,
+      getTotalAportesObjetivos,
+      getCalculatedRadarScores,
+      getOverallHealthScore,
       updatePerfil,
       updateRegraOuro,
       updateItemDespesa,

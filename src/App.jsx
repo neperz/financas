@@ -1,6 +1,8 @@
 import React from 'react';
-import { FinanceProvider } from './context/FinanceContext';
+import { FinanceProvider, useFinance } from './context/FinanceContext';
 import Header from './components/Header';
+import FinancialJourneyNav from './components/FinancialJourneyNav';
+import FinancialWaterfallSummary from './components/FinancialWaterfallSummary';
 import ExpensesSection from './components/ExpensesSection';
 import EmergencyFundSection from './components/EmergencyFundSection';
 import GoalsSection from './components/GoalsSection';
@@ -11,31 +13,72 @@ import HealthIndicatorsSection from './components/HealthIndicatorsSection';
 import FinancialRadarChart from './components/FinancialRadarChart';
 import Footer from './components/Footer';
 
-function MainApp() {
+function MainAppContent() {
+  const { activeTab } = useFinance();
+
   return (
     <div className="app-container">
       <Header />
-      
+      <FinancialJourneyNav />
+
       <main>
-        {/* Top Grid: Radar Chart & Emergency Fund */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(450px, 1fr))', gap: '24px', marginBottom: '24px' }}>
-          <FinancialRadarChart />
-          <EmergencyFundSection />
-        </div>
+        {/* Tab 1: Overview (Visão Geral Conectada) */}
+        {activeTab === 'overview' && (
+          <>
+            <FinancialWaterfallSummary />
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(450px, 1fr))', gap: '24px', marginBottom: '24px' }}>
+              <EmergencyFundSection />
+              <FinancialRadarChart />
+            </div>
+            <ExpensesSection />
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(450px, 1fr))', gap: '24px', marginBottom: '24px' }}>
+              <GoalsSection />
+              <PatrimonyFutureSection />
+            </div>
+            <BenchmarksSection />
+            <LifeStageSection />
+            <HealthIndicatorsSection />
+          </>
+        )}
 
-        {/* Expenses Engine */}
-        <ExpensesSection />
+        {/* Tab 2: 1. Orçamento Mensal & Despesas */}
+        {activeTab === 'budget' && (
+          <>
+            <FinancialWaterfallSummary />
+            <ExpensesSection />
+          </>
+        )}
 
-        {/* Goals & Future Wealth */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(450px, 1fr))', gap: '24px', marginBottom: '24px' }}>
-          <GoalsSection />
-          <PatrimonyFutureSection />
-        </div>
+        {/* Tab 3: 2. Reserva de Emergência */}
+        {activeTab === 'reserve' && (
+          <>
+            <EmergencyFundSection />
+          </>
+        )}
 
-        {/* Benchmarks & Life Stage */}
-        <BenchmarksSection />
-        <LifeStageSection />
-        <HealthIndicatorsSection />
+        {/* Tab 4: 3. Objetivos & Investimentos */}
+        {activeTab === 'goals' && (
+          <>
+            <GoalsSection />
+            <PatrimonyFutureSection />
+          </>
+        )}
+
+        {/* Tab 5: 4. Raio-X & Radar da Saúde */}
+        {activeTab === 'radar' && (
+          <>
+            <FinancialRadarChart />
+            <HealthIndicatorsSection />
+          </>
+        )}
+
+        {/* Tab 6: 5. Benchmarks & Fases da Vida */}
+        {activeTab === 'benchmarks' && (
+          <>
+            <BenchmarksSection />
+            <LifeStageSection />
+          </>
+        )}
       </main>
 
       <Footer />
@@ -46,7 +89,7 @@ function MainApp() {
 export default function App() {
   return (
     <FinanceProvider>
-      <MainApp />
+      <MainAppContent />
     </FinanceProvider>
   );
 }
