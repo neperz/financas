@@ -15,10 +15,12 @@ import {
   Download,
   Upload,
   TrendingUp,
-  Globe
+  Globe,
+  Info
 } from 'lucide-react';
 import html2pdf from 'html2pdf.js';
 import GoldenRulesModal from './GoldenRulesModal';
+import AboutModal from './AboutModal';
 
 export default function Header() {
   const {
@@ -37,6 +39,7 @@ export default function Header() {
   } = useFinance();
 
   const [isRulesOpen, setIsRulesOpen] = useState(false);
+  const [isAboutOpen, setIsAboutOpen] = useState(false);
   const [editingRenda, setEditingRenda] = useState(false);
   const [tempRenda, setTempRenda] = useState(data.perfil.rendaLiquidaMensal);
   const [isGeneratingPDF, setIsGeneratingPDF] = useState(false);
@@ -172,6 +175,16 @@ export default function Header() {
               accept=".json"
               style={{ display: 'none' }}
             />
+
+            {/* About Button */}
+            <button
+              onClick={() => setIsAboutOpen(true)}
+              className="btn btn-outline"
+              title="Sobre o Projeto & Origem"
+              style={{ padding: '8px 12px' }}
+            >
+              <Info size={16} color="var(--accent-blue)" />
+            </button>
 
             {/* Rules Button */}
             <button
@@ -327,8 +340,9 @@ export default function Header() {
         </div>
       </div>
 
-      {/* Modal de Regras de Ouro */}
+      {/* Modal de Regras de Ouro & Sobre */}
       <GoldenRulesModal isOpen={isRulesOpen} onClose={() => setIsRulesOpen(false)} />
+      <AboutModal isOpen={isAboutOpen} onClose={() => setIsAboutOpen(false)} />
     </header>
   );
 }

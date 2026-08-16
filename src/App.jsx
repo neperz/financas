@@ -14,6 +14,7 @@ import FinancialRadarChart from './components/FinancialRadarChart';
 import CompoundInterestSimulator from './components/CompoundInterestSimulator';
 import AIDiagnosticSection from './components/AIDiagnosticSection';
 import WealthExponentiationSection from './components/WealthExponentiationSection';
+import AboutSection from './components/AboutSection';
 import Footer from './components/Footer';
 
 function MainAppContent() {
@@ -48,6 +49,7 @@ function MainAppContent() {
             <BenchmarksSection />
             <LifeStageSection />
             <HealthIndicatorsSection />
+            <AboutSection />
           </>
         )}
 
@@ -56,6 +58,7 @@ function MainAppContent() {
           <>
             <FinancialWaterfallSummary />
             <ExpensesSection />
+            <AboutSection />
           </>
         )}
 
@@ -63,6 +66,7 @@ function MainAppContent() {
         {activeTab === 'reserve' && (
           <>
             <EmergencyFundSection />
+            <AboutSection />
           </>
         )}
 
@@ -71,6 +75,7 @@ function MainAppContent() {
           <>
             <WealthExponentiationSection />
             <CompoundInterestSimulator />
+            <AboutSection />
           </>
         )}
 
@@ -81,6 +86,7 @@ function MainAppContent() {
             <CompoundInterestSimulator />
             <GoalsSection />
             <PatrimonyFutureSection />
+            <AboutSection />
           </>
         )}
 
@@ -90,6 +96,7 @@ function MainAppContent() {
             <FinancialRadarChart />
             <AIDiagnosticSection />
             <HealthIndicatorsSection />
+            <AboutSection />
           </>
         )}
 
@@ -98,6 +105,7 @@ function MainAppContent() {
           <>
             <BenchmarksSection />
             <LifeStageSection />
+            <AboutSection />
           </>
         )}
       </main>
