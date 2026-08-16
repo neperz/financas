@@ -365,9 +365,38 @@ export function FinanceProvider({ children }) {
     }));
   };
 
+  const addInvestimentoAsset = (asset) => {
+    const newAsset = {
+      id: 'inv_' + Date.now(),
+      ...asset
+    };
+    setData(prev => ({
+      ...prev,
+      investimentos: [...(prev.investimentos || []), newAsset]
+    }));
+  };
+
+  const deleteInvestimentoAsset = (id) => {
+    setData(prev => ({
+      ...prev,
+      investimentos: (prev.investimentos || []).filter(i => i.id !== id)
+    }));
+  };
+
+  const syncPluggyInvestments = (pluggyAssets) => {
+    if (!pluggyAssets || pluggyAssets.length === 0) return;
+    setData(prev => ({
+      ...prev,
+      investimentos: pluggyAssets
+    }));
+  };
+
   return (
     <FinanceContext.Provider value={{
       data,
+      addInvestimentoAsset,
+      deleteInvestimentoAsset,
+      syncPluggyInvestments,
       checkpoints,
       saveCurrentCheckpoint,
       deleteCheckpoint,

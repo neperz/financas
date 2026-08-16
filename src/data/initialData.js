@@ -245,5 +245,9 @@ export const INITIAL_FINANCIAL_DATA = {
     { subject: "Investimentos", ideal: 85, situacao: 50, fullMark: 100 },
     { subject: "Proteção", ideal: 80, situacao: 30, fullMark: 100 },
     { subject: "Planejamento", ideal: 90, situacao: 70, fullMark: 100 }
+  ],
+  investimentos: [
+    { id: 'inv_1', code: 'SPYI11', name: 'SPYI11 (ETF Internacional S&P 500)', type: 'ETF / FII', balance: 112.02, annualRate: 9.8, source: 'meu.pluggy.ai' },
+    { id: 'inv_2', code: 'NU SELEÇÃO', name: 'Nu Seleção Potencial Multimercado', type: 'Fundo Multimercado', balance: 93.73, annualRate: 13.86, source: 'meu.pluggy.ai' }
   ]
 };

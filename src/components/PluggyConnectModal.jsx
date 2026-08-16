@@ -24,7 +24,7 @@ const getRecentMonths = () => {
 };
 
 export default function PluggyConnectModal({ isOpen, onClose }) {
-  const { data, updateItemDespesa, addItemDespesa, updatePatrimonioSituacao } = useFinance();
+  const { data, updateItemDespesa, addItemDespesa, syncPluggyInvestments } = useFinance();
 
   const availableMonths = getRecentMonths();
   const [selectedMonth, setSelectedMonth] = useState(availableMonths[0].value);
@@ -169,6 +169,10 @@ export default function PluggyConnectModal({ isOpen, onClose }) {
         }
       }
     });
+
+    if (investments && investments.length > 0) {
+      syncPluggyInvestments(investments);
+    }
 
     setSyncedSuccess(true);
     setTimeout(() => {
