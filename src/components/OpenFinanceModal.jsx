@@ -68,14 +68,32 @@ export default function OpenFinanceModal({ isOpen, onClose }) {
   };
 
   const handleApplyToBudget = () => {
+    const categoryTotalsMap = new Map();
+
     transactions.forEach(tx => {
-      const category = data.despesas.find(c => c.id === tx.category);
+      const key = `${tx.category}_${tx.description.toLowerCase().trim()}`;
+      if (categoryTotalsMap.has(key)) {
+        const current = categoryTotalsMap.get(key);
+        current.amount += tx.amount;
+      } else {
+        categoryTotalsMap.set(key, {
+          categoryId: tx.category,
+          description: tx.description.trim(),
+          amount: tx.amount
+        });
+      }
+    });
+
+    categoryTotalsMap.forEach((entry) => {
+      const category = data.despesas.find(c => c.id === entry.categoryId);
       if (category) {
-        const existingItem = category.itens.find(i => i.nome.toLowerCase().includes(tx.description.toLowerCase().slice(0, 5)));
+        const existingItem = category.itens.find(i => 
+          i.nome.toLowerCase().trim() === entry.description.toLowerCase().trim()
+        );
         if (existingItem) {
-          updateItemDespesa(tx.category, existingItem.id, tx.amount);
+          updateItemDespesa(entry.categoryId, existingItem.id, entry.amount);
         } else {
-          addItemDespesa(tx.category, `${tx.description} (${selectedBank ? selectedBank.name : 'Extrato'})`, tx.amount);
+          addItemDespesa(entry.categoryId, entry.description, entry.amount);
         }
       }
     });

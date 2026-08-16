@@ -87,7 +87,7 @@ export async function fetchMeuPluggyItemAccounts(itemId, bearerToken) {
   return await res.json();
 }
 
-// Fetch Transactions for a specific Account ID
+// Fetch Transactions for a specific Account ID with Debit/Credit Recognition & Filter
 export async function fetchMeuPluggyAccountTransactions(accountId, bearerToken) {
   const cleanToken = bearerToken.replace(/^Bearer\s+/i, '').trim();
   const apiBase = getMyPluggyApiBase();
@@ -103,20 +103,44 @@ export async function fetchMeuPluggyAccountTransactions(accountId, bearerToken) 
     throw new Error(`Erro ao buscar transações (${res.status})`);
   }
 
-  const txs = await res.json();
-  const list = Array.isArray(txs) ? txs : (txs.results || []);
+  const rawData = await res.json();
+  const list = Array.isArray(rawData) ? rawData : (rawData.results || []);
 
-  return list.map(tx => ({
-    id: tx.id || 'tx_mp_' + Math.random().toString(36).substring(2, 9),
-    date: (tx.date || new Date().toISOString()).slice(0, 10),
-    description: tx.description || tx.descriptionRaw || 'Transação meu.pluggy.ai',
-    amount: Math.abs(tx.amount || 0),
-    category: mapPluggyToAppCategory(tx),
-    source: 'meu.pluggy.ai'
-  }));
+  const processed = [];
+
+  for (const tx of list) {
+    const isCredit = tx.type === 'CREDIT' || (tx.amount > 0 && tx.type !== 'DEBIT');
+    const descUpper = (tx.description || tx.descriptionRaw || '').toUpperCase();
+
+    // 1. Ignore Income/Credit transfers (Transferência Recebida, Resgate de Investimentos, Pix Recebido)
+    if (isCredit) {
+      continue;
+    }
+
+    // 2. Ignore Credit Card Bill Payment transfers to avoid double counting with individual card purchases
+    if (descUpper.includes('PAGAMENTO DE FATURA') || descUpper.includes('PAGAMENTO FATURA')) {
+      continue;
+    }
+
+    const amount = Math.abs(tx.amount || 0);
+
+    if (amount > 0) {
+      processed.push({
+        id: tx.id || 'tx_mp_' + Math.random().toString(36).substring(2, 9),
+        date: (tx.date || new Date().toISOString()).slice(0, 10),
+        description: tx.description || tx.descriptionRaw || 'Despesa bancária',
+        amount: amount,
+        category: mapPluggyToAppCategory(tx),
+        type: 'DEBIT',
+        source: 'meu.pluggy.ai'
+      });
+    }
+  }
+
+  return processed;
 }
 
-// Full Automatic Import Sequence for meu.pluggy.ai
+// Full Automatic Import Sequence for meu.pluggy.ai with Deduplication by Transaction ID
 export async function fetchAllMeuPluggyTransactions(bearerToken) {
   const items = await fetchMeuPluggyUserItems(bearerToken);
 
@@ -124,7 +148,7 @@ export async function fetchAllMeuPluggyTransactions(bearerToken) {
     throw new Error('Nenhuma conta bancária conectada foi encontrada no seu perfil do meu.pluggy.ai.');
   }
 
-  let allTransactions = [];
+  const transactionMap = new Map();
 
   for (const item of items) {
     try {
@@ -132,7 +156,11 @@ export async function fetchAllMeuPluggyTransactions(bearerToken) {
       for (const account of accounts) {
         try {
           const txs = await fetchMeuPluggyAccountTransactions(account.id, bearerToken);
-          allTransactions = [...allTransactions, ...txs];
+          txs.forEach(tx => {
+            if (!transactionMap.has(tx.id)) {
+              transactionMap.set(tx.id, tx);
+            }
+          });
         } catch (e) {
           console.warn(`Erro ao carregar transações da conta ${account.id}:`, e);
         }
@@ -142,7 +170,7 @@ export async function fetchAllMeuPluggyTransactions(bearerToken) {
     }
   }
 
-  return allTransactions;
+  return Array.from(transactionMap.values());
 }
 
 // Fetch transactions from Developer Pluggy API (dashboard.pluggy.ai)
@@ -165,12 +193,15 @@ export async function fetchPluggyItemTransactions(itemId, apiKey) {
   const data = await res.json();
   const results = data.results || [];
 
-  return results.map(tx => ({
-    id: tx.id,
-    date: (tx.date || new Date().toISOString()).slice(0, 10),
-    description: tx.description,
-    amount: Math.abs(tx.amount),
-    category: mapPluggyToAppCategory(tx),
-    source: 'Pluggy Developer'
-  }));
+  return results
+    .filter(tx => tx.type === 'DEBIT' || tx.amount < 0)
+    .map(tx => ({
+      id: tx.id,
+      date: (tx.date || new Date().toISOString()).slice(0, 10),
+      description: tx.description,
+      amount: Math.abs(tx.amount),
+      category: mapPluggyToAppCategory(tx),
+      type: 'DEBIT',
+      source: 'Pluggy Developer'
+    }));
 }
