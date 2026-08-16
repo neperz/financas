@@ -15,6 +15,7 @@ import CompoundInterestSimulator from './components/CompoundInterestSimulator';
 import AIDiagnosticSection from './components/AIDiagnosticSection';
 import WealthExponentiationSection from './components/WealthExponentiationSection';
 import OpenFinanceSection from './components/OpenFinanceSection';
+import CheckpointsSection from './components/CheckpointsSection';
 import AboutSection from './components/AboutSection';
 import Footer from './components/Footer';
 
@@ -40,6 +41,7 @@ function MainAppContent() {
 
             <AIDiagnosticSection />
             <ExpensesSection />
+            <CheckpointsSection />
             <WealthExponentiationSection />
             <CompoundInterestSimulator />
 
@@ -108,6 +110,14 @@ function MainAppContent() {
           <>
             <BenchmarksSection />
             <LifeStageSection />
+            <AboutSection />
+          </>
+        )}
+
+        {/* Tab 8: 7. Checkpoints & Evolução */}
+        {activeTab === 'checkpoints' && (
+          <>
+            <CheckpointsSection />
             <AboutSection />
           </>
         )}

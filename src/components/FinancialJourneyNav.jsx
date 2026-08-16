@@ -8,7 +8,8 @@ import {
   PieChart,
   BarChart3,
   Zap,
-  TrendingUp
+  TrendingUp,
+  History
 } from 'lucide-react';
 
 export default function FinancialJourneyNav() {
@@ -22,7 +23,8 @@ export default function FinancialJourneyNav() {
     { id: 'exponentiation', label: '3. Renda Extra & Aceleração', icon: Zap },
     { id: 'goals', label: '4. Objetivos & Investimentos', icon: Target },
     { id: 'radar', label: '5. Raio-X & Radar de Saúde', icon: PieChart },
-    { id: 'benchmarks', label: '6. Benchmarks & Fases', icon: BarChart3 }
+    { id: 'benchmarks', label: '6. Benchmarks & Fases', icon: BarChart3 },
+    { id: 'checkpoints', label: '7. Checkpoints & Evolução', icon: History }
   ];
 
   const getScoreBadgeColor = (score) => {

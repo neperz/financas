@@ -222,6 +222,65 @@ export function FinanceProvider({ children }) {
     return Math.round(sum / scores.length);
   };
 
+  // Checkpoints State & Persistence
+  const [checkpoints, setCheckpoints] = useState(() => {
+    const saved = localStorage.getItem('plano_financeiro_checkpoints');
+    if (saved) {
+      try {
+        return JSON.parse(saved);
+      } catch (e) {
+        console.error('Failed to parse checkpoints:', e);
+      }
+    }
+    return [
+      {
+        id: 'chk_initial',
+        label: 'Junho 2026 (Inicial)',
+        monthName: 'Junho 2026',
+        createdAt: new Date().toISOString(),
+        rendaLiquida: 30000,
+        totalGastos: 15450,
+        poupancaMensal: 14550,
+        taxaPoupanca: 48.5,
+        overallHealthScore: 82,
+        snapshotData: JSON.parse(JSON.stringify(INITIAL_FINANCIAL_DATA))
+      }
+    ];
+  });
+
+  useEffect(() => {
+    localStorage.setItem('plano_financeiro_checkpoints', JSON.stringify(checkpoints));
+  }, [checkpoints]);
+
+  const saveCurrentCheckpoint = (customLabel) => {
+    const label = customLabel || `Checkpoint ${data.perfil.dataBase || new Date().toLocaleDateString('pt-BR', { month: 'short', year: 'numeric' })}`;
+    const newCheckpoint = {
+      id: 'chk_' + Date.now(),
+      label: label,
+      monthName: label,
+      createdAt: new Date().toISOString(),
+      rendaLiquida: getRendaLiquida(),
+      totalGastos: getTotalGastos(),
+      poupancaMensal: getPoupancaMensal(),
+      taxaPoupanca: getTaxaPoupanca(),
+      overallHealthScore: getOverallHealthScore(),
+      snapshotData: JSON.parse(JSON.stringify(data))
+    };
+
+    setCheckpoints(prev => [...prev, newCheckpoint]);
+  };
+
+  const deleteCheckpoint = (id) => {
+    setCheckpoints(prev => prev.filter(c => c.id !== id));
+  };
+
+  const loadCheckpoint = (id) => {
+    const target = checkpoints.find(c => c.id === id);
+    if (target && target.snapshotData) {
+      setData(JSON.parse(JSON.stringify(target.snapshotData)));
+    }
+  };
+
   // Updaters
   const updatePerfil = (novosCampos) => {
     setData(prev => ({
@@ -309,6 +368,10 @@ export function FinanceProvider({ children }) {
   return (
     <FinanceContext.Provider value={{
       data,
+      checkpoints,
+      saveCurrentCheckpoint,
+      deleteCheckpoint,
+      loadCheckpoint,
       marketData,
       darkMode,
       activeTab,
