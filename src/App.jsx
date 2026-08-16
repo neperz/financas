@@ -14,6 +14,7 @@ import FinancialRadarChart from './components/FinancialRadarChart';
 import CompoundInterestSimulator from './components/CompoundInterestSimulator';
 import AIDiagnosticSection from './components/AIDiagnosticSection';
 import WealthExponentiationSection from './components/WealthExponentiationSection';
+import OpenFinanceSection from './components/OpenFinanceSection';
 import AboutSection from './components/AboutSection';
 import Footer from './components/Footer';
 
@@ -30,7 +31,8 @@ function MainAppContent() {
         {activeTab === 'overview' && (
           <>
             <FinancialWaterfallSummary />
-            
+            <OpenFinanceSection />
+
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(450px, 1fr))', gap: '24px', marginBottom: '24px' }}>
               <EmergencyFundSection />
               <FinancialRadarChart />
@@ -57,6 +59,7 @@ function MainAppContent() {
         {activeTab === 'budget' && (
           <>
             <FinancialWaterfallSummary />
+            <OpenFinanceSection />
             <ExpensesSection />
             <AboutSection />
           </>
