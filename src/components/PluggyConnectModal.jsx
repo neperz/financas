@@ -1,24 +1,64 @@
 import React, { useState, useRef } from 'react';
 import { useFinance } from '../context/FinanceContext';
-import { fetchPluggyItemTransactions, fetchMeuPluggyTransactions } from '../services/pluggyService';
+import { fetchAllMeuPluggyTransactions } from '../services/pluggyService';
 import { fetchMockOpenFinanceStatements } from '../services/openFinanceService';
 import { parseBankStatementFile } from '../services/ofxParserService';
-import { ShieldCheck, Plug, FileText, Upload, RefreshCw, X, Check, Sparkles, AlertCircle, ArrowRight, UserCheck, Lock } from 'lucide-react';
+import { ShieldCheck, Plug, FileText, Upload, RefreshCw, X, Check, Sparkles, AlertCircle, ArrowRight, UserCheck, Key, Lock } from 'lucide-react';
 
 export default function PluggyConnectModal({ isOpen, onClose }) {
   const { data, updateItemDespesa, addItemDespesa } = useFinance();
 
-  const [mode, setMode] = useState('ofx_file'); // 'ofx_file', 'sandbox', 'meu_pluggy'
-  const [personalToken, setPersonalToken] = useState('');
+  const [mode, setMode] = useState('meu_pluggy'); // 'meu_pluggy', 'ofx_file', 'sandbox'
+  const [bearerToken, setBearerToken] = useState('');
   const [step, setStep] = useState(1);
   const [transactions, setTransactions] = useState([]);
   const [isSyncing, setIsSyncing] = useState(false);
   const [syncedSuccess, setSyncedSuccess] = useState(false);
+  const [errorMessage, setErrorMessage] = useState('');
   const [fileName, setFileName] = useState('');
 
   const fileInputRef = useRef(null);
 
   if (!isOpen) return null;
+
+  const handleConnectMeuPluggy = async () => {
+    setErrorMessage('');
+
+    if (!bearerToken && mode === 'meu_pluggy') {
+      setErrorMessage('Insira seu Bearer Token do meu.pluggy.ai');
+      return;
+    }
+
+    setIsSyncing(true);
+
+    try {
+      if (mode === 'sandbox') {
+        setTimeout(() => {
+          const mockTxs = fetchMockOpenFinanceStatements('bb');
+          setTransactions(mockTxs);
+          setIsSyncing(false);
+          setStep(3);
+        }, 1000);
+        return;
+      }
+
+      if (mode === 'meu_pluggy') {
+        const txs = await fetchAllMeuPluggyTransactions(bearerToken);
+        if (txs.length > 0) {
+          setTransactions(txs);
+          setIsSyncing(false);
+          setStep(3);
+        } else {
+          setErrorMessage('Nenhuma transação foi retornada para o token informado.');
+          setIsSyncing(false);
+        }
+      }
+    } catch (err) {
+      console.error('Erro na conexão meu.pluggy.ai:', err);
+      setErrorMessage(err.message || 'Falha ao conectar com meu.pluggy.ai');
+      setIsSyncing(false);
+    }
+  };
 
   const handleFileUpload = (e) => {
     const file = e.target.files && e.target.files[0];
@@ -37,40 +77,11 @@ export default function PluggyConnectModal({ isOpen, onClose }) {
         setIsSyncing(false);
         setStep(3);
       } else {
-        alert('Não foram encontradas transações válidas de despesas no arquivo selecionado.');
+        alert('Não foram encontradas transações válidas no arquivo selecionado.');
         setIsSyncing(false);
       }
     };
     reader.readAsText(file);
-  };
-
-  const handleConnectMeuPluggy = async () => {
-    setIsSyncing(true);
-
-    try {
-      if (mode === 'sandbox') {
-        setTimeout(() => {
-          const mockTxs = fetchMockOpenFinanceStatements('bb');
-          setTransactions(mockTxs);
-          setIsSyncing(false);
-          setStep(3);
-        }, 1200);
-        return;
-      }
-
-      if (mode === 'meu_pluggy') {
-        const txs = await fetchMeuPluggyTransactions(personalToken);
-        setTransactions(txs);
-        setIsSyncing(false);
-        setStep(3);
-      }
-    } catch (err) {
-      // Fallback to sample transactions
-      const fallbackTxs = fetchMockOpenFinanceStatements('nubank');
-      setTransactions(fallbackTxs);
-      setIsSyncing(false);
-      setStep(3);
-    }
   };
 
   const handleCategoryChange = (txId, newCat) => {
@@ -115,7 +126,7 @@ export default function PluggyConnectModal({ isOpen, onClose }) {
       padding: '16px'
     }}>
       <div className="glass-card" style={{
-        maxWidth: '680px',
+        maxWidth: '700px',
         width: '100%',
         padding: '28px',
         background: 'var(--bg-secondary)',
@@ -128,10 +139,10 @@ export default function PluggyConnectModal({ isOpen, onClose }) {
           <div>
             <h3 style={{ fontSize: '1.3rem', color: 'var(--text-primary)', fontWeight: 800, display: 'flex', alignItems: 'center', gap: '8px' }}>
               <Plug color="var(--accent-blue)" size={24} />
-              Importador de Extratos (meu.pluggy.ai / OFX / CSV)
+              Conexão Direta meu.pluggy.ai & Extratos
             </h3>
             <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
-              Importação gratuita sem custos de assinatura corporativa (Privacidade LGPD total)
+              Sincronização em tempo real via API `my-api.pluggy.ai` ou Extratos OFX/CSV
             </span>
           </div>
 
@@ -146,11 +157,20 @@ export default function PluggyConnectModal({ isOpen, onClose }) {
             <div style={{ display: 'flex', gap: '8px', marginBottom: '18px', flexWrap: 'wrap' }}>
               <button
                 type="button"
+                onClick={() => setMode('meu_pluggy')}
+                className={`btn ${mode === 'meu_pluggy' ? 'btn-primary' : 'btn-outline'}`}
+                style={{ flex: 1, fontSize: '0.82rem', padding: '8px 12px' }}
+              >
+                <UserCheck size={14} /> meu.pluggy.ai (API Direta)
+              </button>
+
+              <button
+                type="button"
                 onClick={() => setMode('ofx_file')}
                 className={`btn ${mode === 'ofx_file' ? 'btn-primary' : 'btn-outline'}`}
                 style={{ flex: 1, fontSize: '0.82rem', padding: '8px 12px' }}
               >
-                <FileText size={14} /> Arquivo OFX / CSV / JSON
+                <FileText size={14} /> Arquivo OFX / CSV
               </button>
 
               <button
@@ -159,19 +179,59 @@ export default function PluggyConnectModal({ isOpen, onClose }) {
                 className={`btn ${mode === 'sandbox' ? 'btn-primary' : 'btn-outline'}`}
                 style={{ flex: 1, fontSize: '0.82rem', padding: '8px 12px' }}
               >
-                Modo Testes (Sandbox)
+                Modo Testes
               </button>
             </div>
 
-            {/* Mode 1: OFX / CSV File Drag & Drop */}
+            {/* Mode 1: meu.pluggy.ai Direct Bearer Token */}
+            {mode === 'meu_pluggy' && (
+              <div style={{ background: 'var(--bg-primary)', padding: '20px', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-color)', marginBottom: '20px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px', color: 'var(--accent-blue)' }}>
+                  <Key size={18} />
+                  <strong style={{ fontSize: '0.95rem', color: 'var(--text-primary)' }}>
+                    Conectar Conta Pessoal meu.pluggy.ai
+                  </strong>
+                </div>
+
+                <p style={{ fontSize: '0.83rem', color: 'var(--text-secondary)', marginBottom: '14px', lineHeight: 1.4 }}>
+                  Insira o seu <strong>Bearer Token de Autorização</strong> obtido na sua sessão do <strong style={{ color: 'var(--accent-blue)' }}>meu.pluggy.ai</strong>:
+                </p>
+
+                <div style={{ marginBottom: '14px' }}>
+                  <label style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'block', marginBottom: '4px' }}>
+                    Bearer Token / JWT (`Authorization: Bearer eyJhbG...`):
+                  </label>
+                  <textarea
+                    rows={3}
+                    placeholder="Cole seu Bearer token do meu.pluggy.ai..."
+                    value={bearerToken}
+                    onChange={(e) => setBearerToken(e.target.value)}
+                    style={{ width: '100%', fontSize: '0.8rem', fontFamily: 'monospace', padding: '8px' }}
+                  />
+                </div>
+
+                {errorMessage && (
+                  <div style={{ color: 'var(--accent-rose)', fontSize: '0.8rem', marginBottom: '12px', background: 'rgba(244,63,94,0.1)', padding: '8px', borderRadius: 'var(--radius-sm)' }}>
+                    ⚠️ {errorMessage}
+                  </div>
+                )}
+
+                <div style={{ fontSize: '0.74rem', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <Lock size={14} color="var(--accent-green)" />
+                  <span>Busca contas e transações ativas diretamente na API `my-api.pluggy.ai`.</span>
+                </div>
+              </div>
+            )}
+
+            {/* Mode 2: OFX/CSV File Drag & Drop */}
             {mode === 'ofx_file' && (
               <div style={{ background: 'var(--bg-primary)', padding: '24px', borderRadius: 'var(--radius-md)', border: '2px dashed var(--border-color)', textAlign: 'center', marginBottom: '20px' }}>
                 <Upload size={36} color="var(--accent-blue)" style={{ marginBottom: '12px' }} />
                 <h4 style={{ fontSize: '1rem', color: 'var(--text-primary)', fontWeight: 700, marginBottom: '6px' }}>
-                  Carregar Extrato Bancário (OFX / CSV / JSON)
+                  Carregar Extrato Bancário (OFX / CSV)
                 </h4>
                 <p style={{ fontSize: '0.82rem', color: 'var(--text-secondary)', marginBottom: '16px', lineHeight: 1.4 }}>
-                  Baixe o extrato no formato <strong>.OFX</strong> ou <strong>.CSV</strong> do seu banco (BB, Nubank, Inter, Itaú, Bradesco) ou do portal <strong>meu.pluggy.ai</strong> e selecione o arquivo abaixo:
+                  Baixe o arquivo <strong>.OFX</strong> ou <strong>.CSV</strong> no seu banco e selecione abaixo:
                 </p>
 
                 <input
@@ -187,30 +247,22 @@ export default function PluggyConnectModal({ isOpen, onClose }) {
                   className="btn btn-primary"
                   style={{ padding: '10px 24px', fontSize: '0.9rem' }}
                 >
-                  Selecionar Arquivo do Extrato
+                  Selecionar Arquivo
                 </button>
-
-                <div style={{ fontSize: '0.74rem', color: 'var(--text-muted)', marginTop: '16px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}>
-                  <Lock size={14} color="var(--accent-green)" />
-                  <span>100% Privado: O arquivo é processado direto no seu navegador. Nenhum dado financeiro é enviado para servidores externos.</span>
-                </div>
               </div>
             )}
 
-            {/* Mode 2: Sandbox */}
-            {mode === 'sandbox' && (
-              <div style={{ background: 'var(--bg-primary)', padding: '20px', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-color)', marginBottom: '20px', textAlign: 'center' }}>
-                <Sparkles size={28} color="var(--accent-amber)" style={{ marginBottom: '8px' }} />
-                <h4 style={{ fontSize: '1rem', color: 'var(--text-primary)', fontWeight: 700, marginBottom: '6px' }}>
-                  Simulação com Extratos de Demonstração
-                </h4>
-                <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', marginBottom: '16px' }}>
-                  Testa o algoritmo de categorização automática com um extrato de despesas bancárias reais de exemplo.
-                </p>
-                <button onClick={handleConnectMeuPluggy} className="btn btn-primary" style={{ padding: '10px 24px' }}>
-                  Executar Teste de Categorização <ArrowRight size={16} />
-                </button>
+            {isSyncing ? (
+              <div style={{ textAlign: 'center', padding: '20px' }}>
+                <RefreshCw size={32} color="var(--accent-blue)" style={{ animation: 'spin 1s linear infinite' }} />
+                <span style={{ fontSize: '0.9rem', display: 'block', marginTop: '10px', color: 'var(--accent-blue)', fontWeight: 600 }}>
+                  Conectando à API my-api.pluggy.ai e buscando extratos...
+                </span>
               </div>
+            ) : mode !== 'ofx_file' && (
+              <button onClick={handleConnectMeuPluggy} className="btn btn-primary" style={{ width: '100%', padding: '12px', fontSize: '0.95rem' }}>
+                Sincronizar Transações <ArrowRight size={16} />
+              </button>
             )}
           </div>
         )}
@@ -221,11 +273,11 @@ export default function PluggyConnectModal({ isOpen, onClose }) {
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
               <div>
                 <h4 style={{ fontSize: '1.05rem', color: 'var(--text-primary)', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '6px' }}>
-                  <FileText size={18} color="var(--accent-blue)" />
-                  Extrato Processado ({fileName || 'OFX / CSV'})
+                  <UserCheck size={18} color="var(--accent-blue)" />
+                  Extrato Importado ({transactions[0]?.source || 'meu.pluggy.ai'})
                 </h4>
                 <span style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>
-                  Transações classificadas pelo motor de categorização do projeto.
+                  Transações lidas e mapeadas para as 8 categorias de despesas do projeto.
                 </span>
               </div>
 
@@ -272,12 +324,12 @@ export default function PluggyConnectModal({ isOpen, onClose }) {
 
             {syncedSuccess ? (
               <div style={{ background: 'var(--status-verde-bg)', border: '1px solid rgba(16, 185, 129, 0.3)', padding: '14px', borderRadius: 'var(--radius-md)', textAlign: 'center', color: 'var(--accent-green)', fontWeight: 700 }}>
-                ✓ Extrato sincronizado e orçamento atualizado!
+                ✓ Transações sincronizadas e orçamento atualizado!
               </div>
             ) : (
               <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end' }}>
                 <button onClick={() => setStep(1)} className="btn btn-outline">
-                  Carregar Outro Extrato
+                  Nova Conexão
                 </button>
                 <button onClick={handleApplyToBudget} className="btn btn-primary" style={{ padding: '10px 20px' }}>
                   <Check size={16} /> Preencher Orçamento com Extrato
