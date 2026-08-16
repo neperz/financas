@@ -3,7 +3,14 @@
 import { categorizeTransaction } from './openFinanceService';
 
 const PLUGGY_API_URL = 'https://api.pluggy.ai';
-const MY_PLUGGY_API_URL = 'https://my-api.pluggy.ai';
+
+// Route through Cloudflare Function proxy or CORS proxy to bypass browser CORS limits
+const getMyPluggyApiBase = () => {
+  if (typeof window !== 'undefined' && window.location.hostname === 'localhost') {
+    return 'https://corsproxy.io/?https://my-api.pluggy.ai';
+  }
+  return '/api/pluggy';
+};
 
 // Convert Pluggy / meu.pluggy.ai Transaction Category to App's 8 Core Categories
 export function mapPluggyToAppCategory(pluggyTx) {
@@ -42,15 +49,15 @@ export function mapPluggyToAppCategory(pluggyTx) {
   return 'outros';
 }
 
-// Fetch Real User Bank Items from meu.pluggy.ai (my-api.pluggy.ai)
+// Fetch Real User Bank Items from meu.pluggy.ai via CORS Proxy
 export async function fetchMeuPluggyUserItems(bearerToken) {
   const cleanToken = bearerToken.replace(/^Bearer\s+/i, '').trim();
+  const apiBase = getMyPluggyApiBase();
 
-  const res = await fetch(`${MY_PLUGGY_API_URL}/items`, {
+  const res = await fetch(`${apiBase}/items`, {
     headers: {
       'Accept': 'application/json',
-      'Authorization': `Bearer ${cleanToken}`,
-      'Origin': 'https://meu.pluggy.ai'
+      'Authorization': `Bearer ${cleanToken}`
     }
   });
 
@@ -64,12 +71,12 @@ export async function fetchMeuPluggyUserItems(bearerToken) {
 // Fetch Accounts for a specific Item ID
 export async function fetchMeuPluggyItemAccounts(itemId, bearerToken) {
   const cleanToken = bearerToken.replace(/^Bearer\s+/i, '').trim();
+  const apiBase = getMyPluggyApiBase();
 
-  const res = await fetch(`${MY_PLUGGY_API_URL}/accounts?itemId=${itemId}`, {
+  const res = await fetch(`${apiBase}/accounts?itemId=${itemId}`, {
     headers: {
       'Accept': 'application/json',
-      'Authorization': `Bearer ${cleanToken}`,
-      'Origin': 'https://meu.pluggy.ai'
+      'Authorization': `Bearer ${cleanToken}`
     }
   });
 
@@ -83,12 +90,12 @@ export async function fetchMeuPluggyItemAccounts(itemId, bearerToken) {
 // Fetch Transactions for a specific Account ID
 export async function fetchMeuPluggyAccountTransactions(accountId, bearerToken) {
   const cleanToken = bearerToken.replace(/^Bearer\s+/i, '').trim();
+  const apiBase = getMyPluggyApiBase();
 
-  const res = await fetch(`${MY_PLUGGY_API_URL}/transactions?accountId=${accountId}`, {
+  const res = await fetch(`${apiBase}/transactions?accountId=${accountId}`, {
     headers: {
       'Accept': 'application/json',
-      'Authorization': `Bearer ${cleanToken}`,
-      'Origin': 'https://meu.pluggy.ai'
+      'Authorization': `Bearer ${cleanToken}`
     }
   });
 
