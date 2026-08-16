@@ -1,6 +1,6 @@
 // Pluggy Open Finance & meu.pluggy.ai Personal API Integration Service
 
-import { categorizeTransaction } from './openFinanceService';
+import { categorizeTransaction, normalizeTransactionDescription } from './openFinanceService';
 
 const PLUGGY_API_URL = 'https://api.pluggy.ai';
 
@@ -175,14 +175,16 @@ export async function fetchMeuPluggyAccountTransactions(accountId, bearerToken, 
     }
 
     const amount = Math.abs(tx.amount || 0);
+    const rawDesc = tx.description || tx.descriptionRaw || 'Despesa bancária';
+    const cleanDesc = normalizeTransactionDescription(rawDesc);
 
     if (amount > 0) {
       processed.push({
         id: tx.id || 'tx_mp_' + Math.random().toString(36).substring(2, 9),
         date: txDate || new Date().toISOString().slice(0, 10),
-        description: tx.description || tx.descriptionRaw || 'Despesa bancária',
+        description: cleanDesc,
         amount: amount,
-        category: mapPluggyToAppCategory(tx),
+        category: mapPluggyToAppCategory({ ...tx, description: cleanDesc }),
         type: 'DEBIT',
         source: 'meu.pluggy.ai'
       });

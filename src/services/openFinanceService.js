@@ -10,36 +10,93 @@ export const SUPPORTED_BANKS = [
   { id: 'c6', name: 'C6 Bank', logo: '⬛', color: '#f1f5f9', primaryColor: '#242424' }
 ];
 
+// Description Normalizer to eliminate duplicates caused by gateway prefixes & merchant variations
+export function normalizeTransactionDescription(description = '') {
+  let descUpper = description.toUpperCase().trim();
+
+  // Remove common payment gateway prefixes (PAG*, IFD*, MP*, DL*, EBANX*, PAYPAL*)
+  descUpper = descUpper.replace(/^(PAG\*|IFD\*|MP\*|DL\*|EBANX\*|PAYPAL\*)/i, '').trim();
+
+  // Amazon Normalization
+  if (/(AMAZON|AMZN)/.test(descUpper)) {
+    if (/(PRIME|VIDEO)/.test(descUpper)) return 'Amazon Prime';
+    if (/(KINDLE|BOOKS|LIVROS)/.test(descUpper)) return 'Amazon Kindle / Livros';
+    return 'Amazon.com.br';
+  }
+
+  // iFood
+  if (/(IFOOD|FOOD CLUB)/.test(descUpper)) {
+    return 'iFood';
+  }
+
+  // Uber
+  if (/(UBER)/.test(descUpper)) {
+    if (/EATS/.test(descUpper)) return 'Uber Eats';
+    return 'Uber';
+  }
+
+  // Mercado Livre
+  if (/(MERCADO\s*LIVRE|MERCADOLIVRE)/.test(descUpper)) {
+    return 'Mercado Livre';
+  }
+
+  // Apple
+  if (/(APPLE\.COM|APPLE)/.test(descUpper)) {
+    return 'Apple Services';
+  }
+
+  // Streaming & Subscriptions
+  if (/NETFLIX/.test(descUpper)) return 'Netflix';
+  if (/SPOTIFY/.test(descUpper)) return 'Spotify';
+  if (/(DISNEY|DISNEYPLUS)/.test(descUpper)) return 'Disney+';
+  if (/(MAX|HBO)/.test(descUpper)) return 'Max (HBO)';
+
+  // Pharmacies
+  if (/(DROGASIL|DROGARAIA|DROGA RAIA)/.test(descUpper)) return 'Drogasil / Raia';
+  if (/DROGARIA/.test(descUpper)) return 'Drogaria';
+
+  // Supermarkets
+  if (/CARREFOUR/.test(descUpper)) return 'Carrefour';
+  if (/(PÃO DE AÇÚCAR|PAO DE ACUCAR)/.test(descUpper)) return 'Pão de Açúcar';
+  if (/ATACADAO/.test(descUpper)) return 'Atacadão';
+
+  // Fuel / Gas stations
+  if (/(SHELL|POSTO)/.test(descUpper)) return 'Posto de Combustível';
+
+  // Return cleaned original description if no rule matched
+  return description.trim();
+}
+
 // Smart Transaction Categorizer Rules Engine
 export function categorizeTransaction(description = '', amount = 0) {
-  const descUpper = description.toUpperCase();
+  const normDesc = normalizeTransactionDescription(description).toUpperCase();
 
   // Moradia
-  if (/(ENEL|SABESP|COPEL|CEMIG|ALUGUEL|CONDOMINIO|IPTU|CLARO|VIVO FIBRA|TIM FIXA|NET FIXA)/.test(descUpper)) {
+  if (/(ENEL|SABESP|COPEL|CEMIG|ALUGUEL|CONDOMINIO|IPTU|CLARO|VIVO FIBRA|TIM FIXA|NET FIXA)/.test(normDesc)) {
     return 'moradia';
   }
   // Alimentação
-  if (/(CARREFOUR|PÃO DE AÇÚCAR|ATACADAO|IFOOD|REST|PADARIA|MERCADO|HORTIFRUTI|OUTBACK|UBER EATS|MC DONALDS)/.test(descUpper)) {
+  if (/(CARREFOUR|PÃO DE AÇÚCAR|ATACADAO|IFOOD|REST|PADARIA|MERCADO|HORTIFRUTI|OUTBACK|UBER EATS|MC DONALDS)/.test(normDesc)) {
     return 'alimentacao';
   }
   // Transporte
-  if (/(UBER|99APP|POSTO|SHELL|IPVA|SEM PARAR|LOCALIZA|VELOE|GASOLINA|ESTACIONAMENTO)/.test(descUpper)) {
+  if (/(UBER|99APP|POSTO|SHELL|IPVA|SEM PARAR|LOCALIZA|VELOE|GASOLINA|ESTACIONAMENTO)/.test(normDesc)) {
     return 'transporte';
   }
   // Saúde
-  if (/(DROGASIL|DROGARAIA|DASA|FLEURY|UNIMED|SMART FIT|ACADEMIA|FARMACIA|PSICOLOGO|CONSULTORIO)/.test(descUpper)) {
+  if (/(DROGASIL|DROGARAIA|DASA|FLEURY|UNIMED|SMART FIT|ACADEMIA|FARMACIA|PSICOLOGO|CONSULTORIO)/.test(normDesc)) {
     return 'saude';
   }
   // Educação
-  if (/(ESCOLA|FACULDADE|UDEMY|ALURA|LIVRARIA|CURSO|IDIOMAS|COLEGIO)/.test(descUpper)) {
+  if (/(ESCOLA|FACULDADE|UDEMY|ALURA|LIVRARIA|CURSO|IDIOMAS|COLEGIO|KINDLE)/.test(normDesc)) {
     return 'educacao';
   }
   // Proteção
-  if (/(PORTO SEGURO|MAPFRE|TOKIO MARINE|SEGURO|SULAMERICA|BRADESCO SEGUROS)/.test(descUpper)) {
+  if (/(PORTO SEGURO|MAPFRE|TOKIO MARINE|SEGURO|SULAMERICA|BRADESCO SEGUROS)/.test(normDesc)) {
     return 'protecao';
   }
   // Lazer
-  if (/(NETFLIX|SPOTIFY|CINEMARK|STEAM|INGRESSO|AIRBNB|HOTEL|VIAGEM|PRIME VIDEO|DISNEY)/.test(descUpper)) {
+  if (/(NETFLIX|SPOTIFY|CINEMARK|STEAM|INGRESSO|AIRBNB|HOTEL|VIAGEM|PRIME VIDEO|AMAZON PRIME|DISNEY|MAX)/.test(normDesc)) {
     return 'lazer';
   }
 
@@ -80,6 +137,7 @@ export function fetchMockOpenFinanceStatements(bankId) {
 
   return rawList.map(tx => ({
     ...tx,
+    description: normalizeTransactionDescription(tx.description),
     bankName: bank.name,
     bankId: bank.id,
     category: categorizeTransaction(tx.description, tx.amount)
