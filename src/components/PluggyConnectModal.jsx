@@ -3,13 +3,16 @@ import { useFinance } from '../context/FinanceContext';
 import { fetchAllMeuPluggyTransactions } from '../services/pluggyService';
 import { fetchMockOpenFinanceStatements } from '../services/openFinanceService';
 import { parseBankStatementFile } from '../services/ofxParserService';
-import { ShieldCheck, Plug, FileText, Upload, RefreshCw, X, Check, Sparkles, AlertCircle, ArrowRight, UserCheck, Key, Lock } from 'lucide-react';
+import { extractBearerToken, parseJwtPayload } from '../services/jwtHelper';
+import { ShieldCheck, Plug, FileText, Upload, RefreshCw, X, Check, Sparkles, AlertCircle, ArrowRight, UserCheck, Key, Lock, Copy, Terminal, HelpCircle } from 'lucide-react';
 
 export default function PluggyConnectModal({ isOpen, onClose }) {
   const { data, updateItemDespesa, addItemDespesa } = useFinance();
 
   const [mode, setMode] = useState('meu_pluggy'); // 'meu_pluggy', 'ofx_file', 'sandbox'
-  const [bearerToken, setBearerToken] = useState('');
+  const [rawInputToken, setRawInputToken] = useState('');
+  const [extractedToken, setExtractedToken] = useState('');
+  const [jwtInfo, setJwtInfo] = useState(null);
   const [step, setStep] = useState(1);
   const [transactions, setTransactions] = useState([]);
   const [isSyncing, setIsSyncing] = useState(false);
@@ -21,11 +24,26 @@ export default function PluggyConnectModal({ isOpen, onClose }) {
 
   if (!isOpen) return null;
 
+  const handleTokenInputChange = (value) => {
+    setRawInputToken(value);
+    const cleanToken = extractBearerToken(value);
+    setExtractedToken(cleanToken);
+
+    if (cleanToken) {
+      const payload = parseJwtPayload(cleanToken);
+      setJwtInfo(payload);
+    } else {
+      setJwtInfo(null);
+    }
+  };
+
   const handleConnectMeuPluggy = async () => {
     setErrorMessage('');
 
-    if (!bearerToken && mode === 'meu_pluggy') {
-      setErrorMessage('Insira seu Bearer Token do meu.pluggy.ai');
+    const tokenToUse = extractedToken || rawInputToken;
+
+    if (!tokenToUse && mode === 'meu_pluggy') {
+      setErrorMessage('Insira ou cole a requisição cURL com seu Bearer Token do meu.pluggy.ai');
       return;
     }
 
@@ -43,7 +61,7 @@ export default function PluggyConnectModal({ isOpen, onClose }) {
       }
 
       if (mode === 'meu_pluggy') {
-        const txs = await fetchAllMeuPluggyTransactions(bearerToken);
+        const txs = await fetchAllMeuPluggyTransactions(tokenToUse);
         if (txs.length > 0) {
           setTransactions(txs);
           setIsSyncing(false);
@@ -109,6 +127,12 @@ export default function PluggyConnectModal({ isOpen, onClose }) {
     }, 1800);
   };
 
+  const copyConsoleSnippet = () => {
+    const code = `copy(Object.values(sessionStorage).concat(Object.values(localStorage)).find(v=>v.includes('eyJ')) || ''); alert('Token copiado com sucesso!');`;
+    navigator.clipboard.writeText(code);
+    alert('Código copiado! Cole no Console (F12) do meu.pluggy.ai para copiar o token diretamente.');
+  };
+
   const formatCurrency = (val) => {
     return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(val);
   };
@@ -126,7 +150,7 @@ export default function PluggyConnectModal({ isOpen, onClose }) {
       padding: '16px'
     }}>
       <div className="glass-card" style={{
-        maxWidth: '700px',
+        maxWidth: '720px',
         width: '100%',
         padding: '28px',
         background: 'var(--bg-secondary)',
@@ -139,10 +163,10 @@ export default function PluggyConnectModal({ isOpen, onClose }) {
           <div>
             <h3 style={{ fontSize: '1.3rem', color: 'var(--text-primary)', fontWeight: 800, display: 'flex', alignItems: 'center', gap: '8px' }}>
               <Plug color="var(--accent-blue)" size={24} />
-              Conexão Direta meu.pluggy.ai & Extratos
+              Facilitador de Token meu.pluggy.ai
             </h3>
             <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
-              Sincronização em tempo real via API `my-api.pluggy.ai` ou Extratos OFX/CSV
+              Extração automática de cURL e sincronização direta com a API `my-api.pluggy.ai`
             </span>
           </div>
 
@@ -161,7 +185,7 @@ export default function PluggyConnectModal({ isOpen, onClose }) {
                 className={`btn ${mode === 'meu_pluggy' ? 'btn-primary' : 'btn-outline'}`}
                 style={{ flex: 1, fontSize: '0.82rem', padding: '8px 12px' }}
               >
-                <UserCheck size={14} /> meu.pluggy.ai (API Direta)
+                <UserCheck size={14} /> meu.pluggy.ai (Auto cURL)
               </button>
 
               <button
@@ -183,32 +207,47 @@ export default function PluggyConnectModal({ isOpen, onClose }) {
               </button>
             </div>
 
-            {/* Mode 1: meu.pluggy.ai Direct Bearer Token */}
+            {/* Mode 1: Auto cURL Parser / Token */}
             {mode === 'meu_pluggy' && (
               <div style={{ background: 'var(--bg-primary)', padding: '20px', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-color)', marginBottom: '20px' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px', color: 'var(--accent-blue)' }}>
-                  <Key size={18} />
-                  <strong style={{ fontSize: '0.95rem', color: 'var(--text-primary)' }}>
-                    Conectar Conta Pessoal meu.pluggy.ai
-                  </strong>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--accent-blue)' }}>
+                    <Terminal size={18} />
+                    <strong style={{ fontSize: '0.95rem', color: 'var(--text-primary)' }}>
+                      Cole o cURL do navegador ou o Bearer Token
+                    </strong>
+                  </div>
+                  <button onClick={copyConsoleSnippet} className="btn btn-outline" style={{ fontSize: '0.72rem', padding: '4px 10px' }}>
+                    <Copy size={12} /> Snippet DevTools
+                  </button>
                 </div>
 
-                <p style={{ fontSize: '0.83rem', color: 'var(--text-secondary)', marginBottom: '14px', lineHeight: 1.4 }}>
-                  Insira o seu <strong>Bearer Token de Autorização</strong> obtido na sua sessão do <strong style={{ color: 'var(--accent-blue)' }}>meu.pluggy.ai</strong>:
+                <p style={{ fontSize: '0.82rem', color: 'var(--text-secondary)', marginBottom: '12px', lineHeight: 1.4 }}>
+                  No <strong style={{ color: 'var(--accent-blue)' }}>meu.pluggy.ai</strong>, abra o DevTools (F12) ➔ guia Network ➔ clique com botão direito em qualquer requisição ➔ <strong>"Copy as cURL"</strong> e cole no campo abaixo. Nosso extrator identificará o Bearer token automaticamente:
                 </p>
 
                 <div style={{ marginBottom: '14px' }}>
-                  <label style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'block', marginBottom: '4px' }}>
-                    Bearer Token / JWT (`Authorization: Bearer eyJhbG...`):
-                  </label>
                   <textarea
-                    rows={3}
-                    placeholder="Cole seu Bearer token do meu.pluggy.ai..."
-                    value={bearerToken}
-                    onChange={(e) => setBearerToken(e.target.value)}
-                    style={{ width: '100%', fontSize: '0.8rem', fontFamily: 'monospace', padding: '8px' }}
+                    rows={4}
+                    placeholder="Cole aqui o cURL completo copiado do DevTools ou seu Bearer Token (curl 'https://my-api.pluggy.ai...' -H 'Authorization: Bearer eyJ...')..."
+                    value={rawInputToken}
+                    onChange={(e) => handleTokenInputChange(e.target.value)}
+                    style={{ width: '100%', fontSize: '0.8rem', fontFamily: 'monospace', padding: '10px' }}
                   />
                 </div>
+
+                {extractedToken && (
+                  <div style={{ background: 'rgba(16, 185, 129, 0.12)', border: '1px solid rgba(16, 185, 129, 0.3)', padding: '10px 14px', borderRadius: 'var(--radius-sm)', marginBottom: '12px', fontSize: '0.8rem', color: 'var(--accent-green)' }}>
+                    <div style={{ fontWeight: 700, display: 'flex', alignItems: 'center', gap: '6px' }}>
+                      <Check size={14} /> Token JWT identificado e extraído com sucesso!
+                    </div>
+                    {jwtInfo && (
+                      <div style={{ fontSize: '0.75rem', marginTop: '4px', color: 'var(--text-secondary)' }}>
+                        Usuário: <strong>{jwtInfo['https://api.pluggy.ai/email'] || jwtInfo.sub || 'Autenticado'}</strong>
+                      </div>
+                    )}
+                  </div>
+                )}
 
                 {errorMessage && (
                   <div style={{ color: 'var(--accent-rose)', fontSize: '0.8rem', marginBottom: '12px', background: 'rgba(244,63,94,0.1)', padding: '8px', borderRadius: 'var(--radius-sm)' }}>
@@ -218,7 +257,7 @@ export default function PluggyConnectModal({ isOpen, onClose }) {
 
                 <div style={{ fontSize: '0.74rem', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: '6px' }}>
                   <Lock size={14} color="var(--accent-green)" />
-                  <span>Busca contas e transações ativas diretamente na API `my-api.pluggy.ai`.</span>
+                  <span>Extração 100% cliente-side. Seu token é usado diretamente contra `my-api.pluggy.ai`.</span>
                 </div>
               </div>
             )}
@@ -256,7 +295,7 @@ export default function PluggyConnectModal({ isOpen, onClose }) {
               <div style={{ textAlign: 'center', padding: '20px' }}>
                 <RefreshCw size={32} color="var(--accent-blue)" style={{ animation: 'spin 1s linear infinite' }} />
                 <span style={{ fontSize: '0.9rem', display: 'block', marginTop: '10px', color: 'var(--accent-blue)', fontWeight: 600 }}>
-                  Conectando à API my-api.pluggy.ai e buscando extratos...
+                  Conectando à API my-api.pluggy.ai e buscando extratos reais...
                 </span>
               </div>
             ) : mode !== 'ofx_file' && (
