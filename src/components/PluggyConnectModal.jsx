@@ -1,30 +1,50 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useRef } from 'react';
 import { useFinance } from '../context/FinanceContext';
-import { fetchPluggyItemTransactions, fetchMeuPluggyTransactions, mapPluggyToAppCategory } from '../services/pluggyService';
+import { fetchPluggyItemTransactions, fetchMeuPluggyTransactions } from '../services/pluggyService';
 import { fetchMockOpenFinanceStatements } from '../services/openFinanceService';
-import { ShieldCheck, Plug, Key, RefreshCw, X, Check, Sparkles, AlertCircle, ArrowRight, UserCheck, Globe } from 'lucide-react';
+import { parseBankStatementFile } from '../services/ofxParserService';
+import { ShieldCheck, Plug, FileText, Upload, RefreshCw, X, Check, Sparkles, AlertCircle, ArrowRight, UserCheck, Lock } from 'lucide-react';
 
 export default function PluggyConnectModal({ isOpen, onClose }) {
   const { data, updateItemDespesa, addItemDespesa } = useFinance();
 
-  const [mode, setMode] = useState('meu_pluggy'); // 'meu_pluggy', 'sandbox', 'dev_token'
+  const [mode, setMode] = useState('ofx_file'); // 'ofx_file', 'sandbox', 'meu_pluggy'
   const [personalToken, setPersonalToken] = useState('');
-  const [connectToken, setConnectToken] = useState('');
   const [step, setStep] = useState(1);
   const [transactions, setTransactions] = useState([]);
   const [isSyncing, setIsSyncing] = useState(false);
   const [syncedSuccess, setSyncedSuccess] = useState(false);
-  const [errorMessage, setErrorMessage] = useState('');
+  const [fileName, setFileName] = useState('');
+
+  const fileInputRef = useRef(null);
 
   if (!isOpen) return null;
 
-  const handleConnectMeuPluggy = async () => {
-    setErrorMessage('');
-    if (!personalToken && mode === 'meu_pluggy') {
-      setErrorMessage('Insira seu Token Pessoal do meu.pluggy.ai');
-      return;
-    }
+  const handleFileUpload = (e) => {
+    const file = e.target.files && e.target.files[0];
+    if (!file) return;
 
+    setFileName(file.name);
+    setIsSyncing(true);
+
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const content = event.target.result;
+      const parsedTxs = parseBankStatementFile(content, file.name);
+
+      if (parsedTxs.length > 0) {
+        setTransactions(parsedTxs);
+        setIsSyncing(false);
+        setStep(3);
+      } else {
+        alert('Não foram encontradas transações válidas de despesas no arquivo selecionado.');
+        setIsSyncing(false);
+      }
+    };
+    reader.readAsText(file);
+  };
+
+  const handleConnectMeuPluggy = async () => {
     setIsSyncing(true);
 
     try {
@@ -45,8 +65,7 @@ export default function PluggyConnectModal({ isOpen, onClose }) {
         setStep(3);
       }
     } catch (err) {
-      console.warn('Falling back to Sandbox with sample data for demonstration:', err);
-      // Helpful fallback so user can see it in action
+      // Fallback to sample transactions
       const fallbackTxs = fetchMockOpenFinanceStatements('nubank');
       setTransactions(fallbackTxs);
       setIsSyncing(false);
@@ -66,7 +85,7 @@ export default function PluggyConnectModal({ isOpen, onClose }) {
         if (existingItem) {
           updateItemDespesa(tx.category, existingItem.id, tx.amount);
         } else {
-          addItemDespesa(tx.category, `${tx.description} (meu.pluggy.ai)`, tx.amount);
+          addItemDespesa(tx.category, `${tx.description}`, tx.amount);
         }
       }
     });
@@ -109,10 +128,10 @@ export default function PluggyConnectModal({ isOpen, onClose }) {
           <div>
             <h3 style={{ fontSize: '1.3rem', color: 'var(--text-primary)', fontWeight: 800, display: 'flex', alignItems: 'center', gap: '8px' }}>
               <Plug color="var(--accent-blue)" size={24} />
-              Conexão meu.pluggy.ai & MCP Protocol
+              Importador de Extratos (meu.pluggy.ai / OFX / CSV)
             </h3>
             <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
-              Sincronização com sua conta pessoal meu.pluggy.ai e servidores MCP
+              Importação gratuita sem custos de assinatura corporativa (Privacidade LGPD total)
             </span>
           </div>
 
@@ -121,17 +140,17 @@ export default function PluggyConnectModal({ isOpen, onClose }) {
           </button>
         </div>
 
-        {/* STEP 1: Select Mode (meu.pluggy.ai vs Sandbox vs Dev) */}
+        {/* STEP 1: Select Mode */}
         {step === 1 && (
           <div>
             <div style={{ display: 'flex', gap: '8px', marginBottom: '18px', flexWrap: 'wrap' }}>
               <button
                 type="button"
-                onClick={() => setMode('meu_pluggy')}
-                className={`btn ${mode === 'meu_pluggy' ? 'btn-primary' : 'btn-outline'}`}
+                onClick={() => setMode('ofx_file')}
+                className={`btn ${mode === 'ofx_file' ? 'btn-primary' : 'btn-outline'}`}
                 style={{ flex: 1, fontSize: '0.82rem', padding: '8px 12px' }}
               >
-                <UserCheck size={14} /> meu.pluggy.ai (Pessoal MCP)
+                <FileText size={14} /> Arquivo OFX / CSV / JSON
               </button>
 
               <button
@@ -144,57 +163,54 @@ export default function PluggyConnectModal({ isOpen, onClose }) {
               </button>
             </div>
 
-            {/* meu.pluggy.ai Personal Token Input */}
-            {mode === 'meu_pluggy' && (
-              <div style={{ background: 'var(--bg-primary)', padding: '18px', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-color)', marginBottom: '20px' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px', color: 'var(--accent-blue)' }}>
-                  <Globe size={18} />
-                  <strong style={{ fontSize: '0.95rem', color: 'var(--text-primary)' }}>
-                    Conectar Conta Pessoal meu.pluggy.ai
-                  </strong>
-                </div>
-
-                <p style={{ fontSize: '0.82rem', color: 'var(--text-secondary)', marginBottom: '12px', lineHeight: 1.5 }}>
-                  Acesse sua conta em <strong style={{ color: 'var(--accent-blue)' }}>https://meu.pluggy.ai/</strong>, gere seu Token Pessoal / chave de acesso MCP e insira abaixo:
+            {/* Mode 1: OFX / CSV File Drag & Drop */}
+            {mode === 'ofx_file' && (
+              <div style={{ background: 'var(--bg-primary)', padding: '24px', borderRadius: 'var(--radius-md)', border: '2px dashed var(--border-color)', textAlign: 'center', marginBottom: '20px' }}>
+                <Upload size={36} color="var(--accent-blue)" style={{ marginBottom: '12px' }} />
+                <h4 style={{ fontSize: '1rem', color: 'var(--text-primary)', fontWeight: 700, marginBottom: '6px' }}>
+                  Carregar Extrato Bancário (OFX / CSV / JSON)
+                </h4>
+                <p style={{ fontSize: '0.82rem', color: 'var(--text-secondary)', marginBottom: '16px', lineHeight: 1.4 }}>
+                  Baixe o extrato no formato <strong>.OFX</strong> ou <strong>.CSV</strong> do seu banco (BB, Nubank, Inter, Itaú, Bradesco) ou do portal <strong>meu.pluggy.ai</strong> e selecione o arquivo abaixo:
                 </p>
 
-                <div style={{ marginBottom: '12px' }}>
-                  <label style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'block', marginBottom: '4px' }}>
-                    Token Pessoal / MCP Token (meu.pluggy.ai):
-                  </label>
-                  <input
-                    type="password"
-                    placeholder="Insira seu Token Pessoal do meu.pluggy.ai"
-                    value={personalToken}
-                    onChange={(e) => setPersonalToken(e.target.value)}
-                    style={{ width: '100%', fontSize: '0.9rem', fontWeight: 'bold' }}
-                  />
-                </div>
+                <input
+                  type="file"
+                  ref={fileInputRef}
+                  onChange={handleFileUpload}
+                  accept=".ofx,.csv,.json"
+                  style={{ display: 'none' }}
+                />
 
-                {errorMessage && (
-                  <div style={{ color: 'var(--accent-rose)', fontSize: '0.78rem', marginBottom: '8px' }}>
-                    ⚠️ {errorMessage}
-                  </div>
-                )}
+                <button
+                  onClick={() => fileInputRef.current && fileInputRef.current.click()}
+                  className="btn btn-primary"
+                  style={{ padding: '10px 24px', fontSize: '0.9rem' }}
+                >
+                  Selecionar Arquivo do Extrato
+                </button>
 
-                <div style={{ fontSize: '0.74rem', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                  <ShieldCheck size={14} color="var(--accent-green)" />
-                  <span>Compatível com o protocolo oficial MCP (Model Context Protocol).</span>
+                <div style={{ fontSize: '0.74rem', color: 'var(--text-muted)', marginTop: '16px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}>
+                  <Lock size={14} color="var(--accent-green)" />
+                  <span>100% Privado: O arquivo é processado direto no seu navegador. Nenhum dado financeiro é enviado para servidores externos.</span>
                 </div>
               </div>
             )}
 
-            {isSyncing ? (
-              <div style={{ textAlign: 'center', padding: '20px' }}>
-                <RefreshCw size={32} color="var(--accent-blue)" style={{ animation: 'spin 1s linear infinite' }} />
-                <span style={{ fontSize: '0.9rem', display: 'block', marginTop: '10px', color: 'var(--accent-blue)', fontWeight: 600 }}>
-                  Sincronizando extratos bancários com meu.pluggy.ai...
-                </span>
+            {/* Mode 2: Sandbox */}
+            {mode === 'sandbox' && (
+              <div style={{ background: 'var(--bg-primary)', padding: '20px', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-color)', marginBottom: '20px', textAlign: 'center' }}>
+                <Sparkles size={28} color="var(--accent-amber)" style={{ marginBottom: '8px' }} />
+                <h4 style={{ fontSize: '1rem', color: 'var(--text-primary)', fontWeight: 700, marginBottom: '6px' }}>
+                  Simulação com Extratos de Demonstração
+                </h4>
+                <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', marginBottom: '16px' }}>
+                  Testa o algoritmo de categorização automática com um extrato de despesas bancárias reais de exemplo.
+                </p>
+                <button onClick={handleConnectMeuPluggy} className="btn btn-primary" style={{ padding: '10px 24px' }}>
+                  Executar Teste de Categorização <ArrowRight size={16} />
+                </button>
               </div>
-            ) : (
-              <button onClick={handleConnectMeuPluggy} className="btn btn-primary" style={{ width: '100%', padding: '12px', fontSize: '0.95rem' }}>
-                Sincronizar Minhas Contas Reais <ArrowRight size={16} />
-              </button>
             )}
           </div>
         )}
@@ -205,11 +221,11 @@ export default function PluggyConnectModal({ isOpen, onClose }) {
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
               <div>
                 <h4 style={{ fontSize: '1.05rem', color: 'var(--text-primary)', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '6px' }}>
-                  <UserCheck size={18} color="var(--accent-blue)" />
-                  Extrato Importado (meu.pluggy.ai)
+                  <FileText size={18} color="var(--accent-blue)" />
+                  Extrato Processado ({fileName || 'OFX / CSV'})
                 </h4>
                 <span style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>
-                  Transações lidas via MCP / API pessoal e classificadas automaticamente.
+                  Transações classificadas pelo motor de categorização do projeto.
                 </span>
               </div>
 
@@ -256,15 +272,15 @@ export default function PluggyConnectModal({ isOpen, onClose }) {
 
             {syncedSuccess ? (
               <div style={{ background: 'var(--status-verde-bg)', border: '1px solid rgba(16, 185, 129, 0.3)', padding: '14px', borderRadius: 'var(--radius-md)', textAlign: 'center', color: 'var(--accent-green)', fontWeight: 700 }}>
-                ✓ Transações do meu.pluggy.ai sincronizadas e orçamento atualizado!
+                ✓ Extrato sincronizado e orçamento atualizado!
               </div>
             ) : (
               <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end' }}>
                 <button onClick={() => setStep(1)} className="btn btn-outline">
-                  Alterar Token
+                  Carregar Outro Extrato
                 </button>
                 <button onClick={handleApplyToBudget} className="btn btn-primary" style={{ padding: '10px 20px' }}>
-                  <Check size={16} /> Preencher Orçamento com meu.pluggy.ai
+                  <Check size={16} /> Preencher Orçamento com Extrato
                 </button>
               </div>
             )}
