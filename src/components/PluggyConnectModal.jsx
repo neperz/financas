@@ -1,14 +1,33 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useRef } from 'react';
 import { useFinance } from '../context/FinanceContext';
 import { fetchAllMeuPluggyTransactions } from '../services/pluggyService';
 import { loginWithGooglePluggy } from '../services/googleAuthService';
 import { fetchMockOpenFinanceStatements } from '../services/openFinanceService';
 import { parseBankStatementFile } from '../services/ofxParserService';
 import { extractBearerToken, parseJwtPayload } from '../services/jwtHelper';
-import { ShieldCheck, Plug, FileText, Upload, RefreshCw, X, Check, Sparkles, AlertCircle, ArrowRight, UserCheck, Key, Lock, Copy, Terminal, ExternalLink } from 'lucide-react';
+import { ShieldCheck, Plug, FileText, Upload, RefreshCw, X, Check, Sparkles, AlertCircle, ArrowRight, UserCheck, Key, Lock, Copy, Terminal, ExternalLink, Calendar } from 'lucide-react';
+
+const getRecentMonths = () => {
+  const months = [];
+  const date = new Date();
+  for (let i = 0; i < 6; i++) {
+    const d = new Date(date.getFullYear(), date.getMonth() - i, 1);
+    const year = d.getFullYear();
+    const monthNum = String(d.getMonth() + 1).padStart(2, '0');
+    const monthName = d.toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' });
+    months.push({
+      value: `${year}-${monthNum}`,
+      label: monthName.charAt(0).toUpperCase() + monthName.slice(1)
+    });
+  }
+  return months;
+};
 
 export default function PluggyConnectModal({ isOpen, onClose }) {
   const { data, updateItemDespesa, addItemDespesa } = useFinance();
+
+  const availableMonths = getRecentMonths();
+  const [selectedMonth, setSelectedMonth] = useState(availableMonths[0].value);
 
   const [mode, setMode] = useState('google'); // 'google', 'ofx_file', 'sandbox'
   const [rawInputToken, setRawInputToken] = useState('');
@@ -65,13 +84,13 @@ export default function PluggyConnectModal({ isOpen, onClose }) {
         return;
       }
 
-      const txs = await fetchAllMeuPluggyTransactions(tokenToUse);
+      const txs = await fetchAllMeuPluggyTransactions(tokenToUse, { selectedMonth });
       if (txs.length > 0) {
         setTransactions(txs);
         setIsSyncing(false);
         setStep(3);
       } else {
-        setErrorMessage('Nenhuma transação foi retornada para o token informado.');
+        setErrorMessage(`Nenhuma transação de saída foi encontrada para o mês selecionado (${selectedMonth}). Tente selecionar outro mês.`);
         setIsSyncing(false);
       }
     } catch (err) {
@@ -91,14 +110,18 @@ export default function PluggyConnectModal({ isOpen, onClose }) {
     const reader = new FileReader();
     reader.onload = (event) => {
       const content = event.target.result;
-      const parsedTxs = parseBankStatementFile(content, file.name);
+      let parsedTxs = parseBankStatementFile(content, file.name);
+
+      if (selectedMonth && selectedMonth !== 'all') {
+        parsedTxs = parsedTxs.filter(t => t.date.startsWith(selectedMonth));
+      }
 
       if (parsedTxs.length > 0) {
         setTransactions(parsedTxs);
         setIsSyncing(false);
         setStep(3);
       } else {
-        alert('Não foram encontradas transações válidas no arquivo selecionado.');
+        alert(`Não foram encontradas transações no mês selecionado (${selectedMonth}) no arquivo.`);
         setIsSyncing(false);
       }
     };
@@ -110,7 +133,6 @@ export default function PluggyConnectModal({ isOpen, onClose }) {
   };
 
   const handleApplyToBudget = () => {
-    // Group transactions by category and description
     const categoryTotalsMap = new Map();
 
     transactions.forEach(tx => {
@@ -127,7 +149,6 @@ export default function PluggyConnectModal({ isOpen, onClose }) {
       }
     });
 
-    // Apply consolidated totals to budget items
     categoryTotalsMap.forEach((entry) => {
       const category = data.despesas.find(c => c.id === entry.categoryId);
       if (category) {
@@ -195,6 +216,25 @@ export default function PluggyConnectModal({ isOpen, onClose }) {
         {/* STEP 1: Select Mode */}
         {step === 1 && (
           <div>
+            {/* Month Filter Selector */}
+            <div style={{ background: 'var(--bg-primary)', padding: '14px 18px', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-color)', marginBottom: '18px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '10px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--accent-blue)' }}>
+                <Calendar size={18} />
+                <strong style={{ fontSize: '0.9rem', color: 'var(--text-primary)' }}>Mês de Referência da Importação:</strong>
+              </div>
+
+              <select
+                value={selectedMonth}
+                onChange={(e) => setSelectedMonth(e.target.value)}
+                style={{ fontSize: '0.9rem', fontWeight: 700, padding: '6px 14px', borderRadius: 'var(--radius-sm)' }}
+              >
+                {availableMonths.map(m => (
+                  <option key={m.value} value={m.value}>{m.label}</option>
+                ))}
+                <option value="all">Todos os Meses (Extrato Completo)</option>
+              </select>
+            </div>
+
             {/* Primary Google Auth Option */}
             <div style={{
               background: 'linear-gradient(135deg, rgba(66, 133, 244, 0.12) 0%, rgba(52, 168, 83, 0.12) 100%)',
@@ -259,7 +299,7 @@ export default function PluggyConnectModal({ isOpen, onClose }) {
                 2. Cole o cURL ou Token de Autenticação:
               </h4>
               <p style={{ fontSize: '0.82rem', color: 'var(--text-secondary)', marginBottom: '12px', lineHeight: 1.4 }}>
-                Cole o comando <strong>cURL</strong> (copiado do DevTools F12 do meu.pluggy.ai) ou o seu Bearer token abaixo. Nosso extrator identificará o token instantaneamente:
+                Cole o comando <strong>cURL</strong> (copiado do DevTools F12 do meu.pluggy.ai) ou o seu Bearer token abaixo para carregar as despesas do mês <strong>{availableMonths.find(m => m.value === selectedMonth)?.label || selectedMonth}</strong>:
               </p>
 
               <textarea
@@ -285,11 +325,11 @@ export default function PluggyConnectModal({ isOpen, onClose }) {
               {isSyncing ? (
                 <div style={{ padding: '10px', textAlign: 'center', color: 'var(--accent-blue)', fontWeight: 600 }}>
                   <RefreshCw size={20} style={{ animation: 'spin 1s linear infinite', marginRight: '8px' }} />
-                  Buscando transações reais em my-api.pluggy.ai...
+                  Buscando transações do mês {selectedMonth} em my-api.pluggy.ai...
                 </div>
               ) : (
                 <button onClick={handleConnectMeuPluggy} className="btn btn-primary" style={{ width: '100%', padding: '10px', fontSize: '0.9rem' }}>
-                  Sincronizar Extrato <ArrowRight size={16} />
+                  Sincronizar Extrato de {availableMonths.find(m => m.value === selectedMonth)?.label || selectedMonth} <ArrowRight size={16} />
                 </button>
               )}
             </div>
@@ -338,10 +378,10 @@ export default function PluggyConnectModal({ isOpen, onClose }) {
               <div>
                 <h4 style={{ fontSize: '1.05rem', color: 'var(--text-primary)', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '6px' }}>
                   <UserCheck size={18} color="var(--accent-blue)" />
-                  Extrato Importado ({transactions[0]?.source || 'meu.pluggy.ai'})
+                  Extrato Importado - {availableMonths.find(m => m.value === selectedMonth)?.label || selectedMonth}
                 </h4>
                 <span style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>
-                  Transações lidas e mapeadas para as 8 categorias de despesas do projeto.
+                  Transações do período mapeadas para as 8 categorias de despesas do projeto.
                 </span>
               </div>
 
@@ -388,7 +428,7 @@ export default function PluggyConnectModal({ isOpen, onClose }) {
 
             {syncedSuccess ? (
               <div style={{ background: 'var(--status-verde-bg)', border: '1px solid rgba(16, 185, 129, 0.3)', padding: '14px', borderRadius: 'var(--radius-md)', textAlign: 'center', color: 'var(--accent-green)', fontWeight: 700 }}>
-                ✓ Transações sincronizadas e orçamento atualizado!
+                ✓ Transações de {availableMonths.find(m => m.value === selectedMonth)?.label || selectedMonth} sincronizadas!
               </div>
             ) : (
               <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end' }}>
@@ -396,7 +436,7 @@ export default function PluggyConnectModal({ isOpen, onClose }) {
                   Nova Conexão
                 </button>
                 <button onClick={handleApplyToBudget} className="btn btn-primary" style={{ padding: '10px 20px' }}>
-                  <Check size={16} /> Preencher Orçamento com Extrato
+                  <Check size={16} /> Preencher Orçamento com Extrato ({selectedMonth})
                 </button>
               </div>
             )}

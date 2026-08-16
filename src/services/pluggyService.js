@@ -87,12 +87,17 @@ export async function fetchMeuPluggyItemAccounts(itemId, bearerToken) {
   return await res.json();
 }
 
-// Fetch Transactions for a specific Account ID with Debit/Credit Recognition & Filter
-export async function fetchMeuPluggyAccountTransactions(accountId, bearerToken) {
+// Fetch Transactions for a specific Account ID with Month & Date Filter support
+export async function fetchMeuPluggyAccountTransactions(accountId, bearerToken, options = {}) {
   const cleanToken = bearerToken.replace(/^Bearer\s+/i, '').trim();
   const apiBase = getMyPluggyApiBase();
+  const { fromDate, toDate, selectedMonth } = options;
 
-  const res = await fetch(`${apiBase}/transactions?accountId=${accountId}`, {
+  let queryParams = `accountId=${accountId}`;
+  if (fromDate) queryParams += `&from=${fromDate}`;
+  if (toDate) queryParams += `&to=${toDate}`;
+
+  const res = await fetch(`${apiBase}/transactions?${queryParams}`, {
     headers: {
       'Accept': 'application/json',
       'Authorization': `Bearer ${cleanToken}`
@@ -111,6 +116,14 @@ export async function fetchMeuPluggyAccountTransactions(accountId, bearerToken) 
   for (const tx of list) {
     const isCredit = tx.type === 'CREDIT' || (tx.amount > 0 && tx.type !== 'DEBIT');
     const descUpper = (tx.description || tx.descriptionRaw || '').toUpperCase();
+    const txDate = (tx.date || '').slice(0, 10);
+
+    // Filter by selected month YYYY-MM if specified
+    if (selectedMonth && selectedMonth !== 'all') {
+      if (!txDate.startsWith(selectedMonth)) {
+        continue;
+      }
+    }
 
     // 1. Ignore Income/Credit transfers (Transferência Recebida, Resgate de Investimentos, Pix Recebido)
     if (isCredit) {
@@ -127,7 +140,7 @@ export async function fetchMeuPluggyAccountTransactions(accountId, bearerToken) 
     if (amount > 0) {
       processed.push({
         id: tx.id || 'tx_mp_' + Math.random().toString(36).substring(2, 9),
-        date: (tx.date || new Date().toISOString()).slice(0, 10),
+        date: txDate || new Date().toISOString().slice(0, 10),
         description: tx.description || tx.descriptionRaw || 'Despesa bancária',
         amount: amount,
         category: mapPluggyToAppCategory(tx),
@@ -140,8 +153,8 @@ export async function fetchMeuPluggyAccountTransactions(accountId, bearerToken) 
   return processed;
 }
 
-// Full Automatic Import Sequence for meu.pluggy.ai with Deduplication by Transaction ID
-export async function fetchAllMeuPluggyTransactions(bearerToken) {
+// Full Automatic Import Sequence for meu.pluggy.ai with Month Filter and Deduplication
+export async function fetchAllMeuPluggyTransactions(bearerToken, options = {}) {
   const items = await fetchMeuPluggyUserItems(bearerToken);
 
   if (!items || items.length === 0) {
@@ -155,7 +168,7 @@ export async function fetchAllMeuPluggyTransactions(bearerToken) {
       const accounts = await fetchMeuPluggyItemAccounts(item.id, bearerToken);
       for (const account of accounts) {
         try {
-          const txs = await fetchMeuPluggyAccountTransactions(account.id, bearerToken);
+          const txs = await fetchMeuPluggyAccountTransactions(account.id, bearerToken, options);
           txs.forEach(tx => {
             if (!transactionMap.has(tx.id)) {
               transactionMap.set(tx.id, tx);
