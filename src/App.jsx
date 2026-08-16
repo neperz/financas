@@ -11,13 +11,15 @@ import BenchmarksSection from './components/BenchmarksSection';
 import LifeStageSection from './components/LifeStageSection';
 import HealthIndicatorsSection from './components/HealthIndicatorsSection';
 import FinancialRadarChart from './components/FinancialRadarChart';
+import CompoundInterestSimulator from './components/CompoundInterestSimulator';
+import AIDiagnosticSection from './components/AIDiagnosticSection';
 import Footer from './components/Footer';
 
 function MainAppContent() {
   const { activeTab } = useFinance();
 
   return (
-    <div className="app-container">
+    <div className="app-container" id="app-main-content">
       <Header />
       <FinancialJourneyNav />
 
@@ -26,15 +28,21 @@ function MainAppContent() {
         {activeTab === 'overview' && (
           <>
             <FinancialWaterfallSummary />
+            
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(450px, 1fr))', gap: '24px', marginBottom: '24px' }}>
               <EmergencyFundSection />
               <FinancialRadarChart />
             </div>
+
+            <AIDiagnosticSection />
             <ExpensesSection />
+            <CompoundInterestSimulator />
+
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(450px, 1fr))', gap: '24px', marginBottom: '24px' }}>
               <GoalsSection />
               <PatrimonyFutureSection />
             </div>
+
             <BenchmarksSection />
             <LifeStageSection />
             <HealthIndicatorsSection />
@@ -59,6 +67,7 @@ function MainAppContent() {
         {/* Tab 4: 3. Objetivos & Investimentos */}
         {activeTab === 'goals' && (
           <>
+            <CompoundInterestSimulator />
             <GoalsSection />
             <PatrimonyFutureSection />
           </>
@@ -68,6 +77,7 @@ function MainAppContent() {
         {activeTab === 'radar' && (
           <>
             <FinancialRadarChart />
+            <AIDiagnosticSection />
             <HealthIndicatorsSection />
           </>
         )}

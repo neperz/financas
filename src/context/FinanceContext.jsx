@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { INITIAL_FINANCIAL_DATA } from '../data/initialData';
+import { fetchMarketIndicators } from '../services/marketApi';
 
 const FinanceContext = createContext();
 
@@ -16,12 +17,21 @@ export function FinanceProvider({ children }) {
     return INITIAL_FINANCIAL_DATA;
   });
 
+  const [marketData, setMarketData] = useState({
+    selic: 10.50,
+    ipca: 4.20,
+    usd: 5.45,
+    eur: 5.95,
+    updatedAt: '',
+    isLive: false
+  });
+
   const [darkMode, setDarkMode] = useState(() => {
     const savedMode = localStorage.getItem('plano_financeiro_theme');
     return savedMode ? savedMode === 'dark' : true;
   });
 
-  const [activeTab, setActiveTab] = useState('overview'); // overview, budget, reserve, goals, radar, insights
+  const [activeTab, setActiveTab] = useState('overview');
 
   useEffect(() => {
     localStorage.setItem('plano_financeiro_data', JSON.stringify(data));
@@ -36,11 +46,48 @@ export function FinanceProvider({ children }) {
     }
   }, [darkMode]);
 
+  // Load real-time market indicators on mount
+  useEffect(() => {
+    fetchMarketIndicators().then(indicators => {
+      setMarketData(indicators);
+    });
+  }, []);
+
   const toggleDarkMode = () => setDarkMode(prev => !prev);
 
   const resetToDefault = () => {
     setData(INITIAL_FINANCIAL_DATA);
     localStorage.removeItem('plano_financeiro_data');
+  };
+
+  // Export / Import Backup JSON
+  const exportDataJSON = () => {
+    const jsonStr = JSON.stringify(data, null, 2);
+    const blob = new Blob([jsonStr], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `plano_financeiro_familiar_${new Date().toISOString().slice(0,10)}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  const importDataJSON = (file) => {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      try {
+        const parsed = JSON.parse(e.target.result);
+        if (parsed.perfil && parsed.despesas) {
+          setData(parsed);
+          alert('Backup importado com sucesso!');
+        } else {
+          alert('Formato de arquivo JSON inválido.');
+        }
+      } catch (err) {
+        alert('Erro ao ler arquivo JSON.');
+      }
+    };
+    reader.readAsText(file);
   };
 
   // Helper calculation functions
@@ -108,12 +155,19 @@ export function FinanceProvider({ children }) {
     return gastos > 0 ? (data.reservaEmergencia.reservaAtual / gastos) : 0;
   };
 
+  // Calculate Emergency Fund Monthly Yield (based on SELIC rate)
+  const getReservaRendimentoMensal = () => {
+    const selicAnual = marketData.selic / 100;
+    const taxaMensal = Math.pow(1 + selicAnual, 1/12) - 1;
+    return data.reservaEmergencia.reservaAtual * taxaMensal;
+  };
+
   // Connected Goals calculations
   const getTotalAportesObjetivos = () => {
     return data.objetivos.reduce((acc, item) => acc + (Number(item.aporteSugerido) || 0), 0);
   };
 
-  // Dynamic Radar Score Calculation (Auto-Calculated connected to real numbers)
+  // Dynamic Radar Score Calculation
   const getCalculatedRadarScores = () => {
     const poupancaPct = getTaxaPoupanca();
     const reservaPct = getReservaPctConcluido();
@@ -121,10 +175,9 @@ export function FinanceProvider({ children }) {
     const totalAportes = getTotalAportesObjetivos();
     const poupancaMensal = getPoupancaMensal();
 
-    // Score formulas
     const scorePoupanca = Math.min(100, Math.max(0, Math.round((poupancaPct / 25) * 85)));
     const scoreReserva = Math.min(100, Math.max(0, Math.round(reservaPct)));
-    const scoreDividas = 85; // Default healthy low debt
+    const scoreDividas = 85;
     const scoreInvestimentos = data.patrimonioFuturo.filter(p => p.situacao === 'Ok' || p.situacao === 'Iniciar').length * 25;
     const scoreProtecao = Math.min(100, Math.max(0, Math.round((protecaoPct / 5) * 80)));
     const scorePlanejamento = totalAportes <= poupancaMensal && poupancaMensal > 0 ? 80 : 50;
@@ -232,11 +285,14 @@ export function FinanceProvider({ children }) {
   return (
     <FinanceContext.Provider value={{
       data,
+      marketData,
       darkMode,
       activeTab,
       setActiveTab,
       toggleDarkMode,
       resetToDefault,
+      exportDataJSON,
+      importDataJSON,
       getRendaLiquida,
       getCategoriaTotal,
       getCategoriaPct,
@@ -247,6 +303,7 @@ export function FinanceProvider({ children }) {
       getReservaMeta,
       getReservaPctConcluido,
       getMesesReservaAtual,
+      getReservaRendimentoMensal,
       getTotalAportesObjetivos,
       getCalculatedRadarScores,
       getOverallHealthScore,

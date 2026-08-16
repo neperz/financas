@@ -1,12 +1,14 @@
 import React from 'react';
 import { useFinance } from '../context/FinanceContext';
-import { Shield, ArrowUpRight, Clock, Target, AlertCircle } from 'lucide-react';
+import { Shield, ArrowUpRight, Clock, Target, AlertCircle, TrendingUp } from 'lucide-react';
 
 export default function EmergencyFundSection() {
   const {
     data,
+    marketData,
     getTotalGastos,
     getPoupancaMensal,
+    getReservaRendimentoMensal,
     updateReservaEmergencia
   } = useFinance();
 
@@ -17,6 +19,8 @@ export default function EmergencyFundSection() {
   const metaReserva = gastos * mesesRecomendados;
   const faltaMeta = Math.max(0, metaReserva - reservaAtual);
   const pctConcluido = Math.min(100, (reservaAtual / (metaReserva || 1)) * 100);
+
+  const rendimentoMensalEstimado = getReservaRendimentoMensal();
 
   // Time projection
   const mesesParaConclusao = poupancaMensal > 0 ? (faltaMeta / poupancaMensal).toFixed(1) : '∞';
@@ -139,7 +143,7 @@ export default function EmergencyFundSection() {
           </div>
         </div>
 
-        {/* Time Projection Simulator Card */}
+        {/* Live Yield & Time Projection Simulator Card */}
         <div style={{
           background: 'var(--bg-secondary)',
           border: '1px solid var(--border-color)',
@@ -150,27 +154,31 @@ export default function EmergencyFundSection() {
           justify: 'space-between'
         }}>
           <div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--accent-amber)' }}>
-              <Clock size={20} />
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--accent-green)' }}>
+              <TrendingUp size={20} />
               <h3 style={{ fontSize: '1rem', fontWeight: 700, color: 'var(--text-primary)' }}>
-                Simulação de Conclusão
+                Rendimento Mensal (SELIC)
               </h3>
             </div>
-            <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginTop: '4px' }}>
-              Com a poupança mensal atual de <strong>{formatCurrency(poupancaMensal)}</strong>:
-            </p>
 
-            <div style={{ margin: '20px 0' }}>
-              <div style={{ fontSize: '1.8rem', fontWeight: 800, color: 'var(--accent-amber)' }}>
-                {mesesParaConclusao} meses
+            <div style={{ margin: '12px 0' }}>
+              <div style={{ fontSize: '1.5rem', fontWeight: 800, color: 'var(--accent-green)' }}>
+                + {formatCurrency(rendimentoMensalEstimado)} / mês
               </div>
-              <span style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
-                (~{anosParaConclusao} anos de aportes contínuos)
+              <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+                Rendimento automático estimado em 100% do CDI/SELIC ({marketData.selic}% a.a.)
               </span>
+            </div>
+
+            <div style={{ paddingTop: '12px', borderTop: '1px dashed var(--border-color)', marginTop: '12px' }}>
+              <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>Tempo até a meta com a poupança atual:</span>
+              <div style={{ fontSize: '1.2rem', fontWeight: 700, color: 'var(--accent-amber)', marginTop: '2px' }}>
+                {mesesParaConclusao} meses <span style={{ fontSize: '0.8rem', fontWeight: 'normal', color: 'var(--text-secondary)' }}>(~{anosParaConclusao} anos)</span>
+              </div>
             </div>
           </div>
 
-          <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', background: 'var(--bg-primary)', padding: '10px', borderRadius: 'var(--radius-sm)' }}>
+          <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', background: 'var(--bg-primary)', padding: '10px', borderRadius: 'var(--radius-sm)', marginTop: '12px' }}>
             💡 <strong>Dica:</strong> Mantenha a reserva de emergência em aplicações de liquidez diária (Tesouro SELIC ou CDB 100% CDI).
           </div>
         </div>

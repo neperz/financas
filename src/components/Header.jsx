@@ -1,14 +1,34 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { useFinance } from '../context/FinanceContext';
-import { Moon, Sun, RotateCcw, ShieldCheck, DollarSign, Users, MapPin, Sparkles, Edit2, Check } from 'lucide-react';
+import {
+  Moon,
+  Sun,
+  RotateCcw,
+  ShieldCheck,
+  DollarSign,
+  Users,
+  MapPin,
+  Sparkles,
+  Edit2,
+  Check,
+  FileDown,
+  Download,
+  Upload,
+  TrendingUp,
+  Globe
+} from 'lucide-react';
+import html2pdf from 'html2pdf.js';
 import GoldenRulesModal from './GoldenRulesModal';
 
 export default function Header() {
   const {
     data,
+    marketData,
     darkMode,
     toggleDarkMode,
     resetToDefault,
+    exportDataJSON,
+    importDataJSON,
     getRendaLiquida,
     getTotalGastos,
     getPoupancaMensal,
@@ -19,6 +39,9 @@ export default function Header() {
   const [isRulesOpen, setIsRulesOpen] = useState(false);
   const [editingRenda, setEditingRenda] = useState(false);
   const [tempRenda, setTempRenda] = useState(data.perfil.rendaLiquidaMensal);
+  const [isGeneratingPDF, setIsGeneratingPDF] = useState(false);
+
+  const fileInputRef = useRef(null);
 
   const formatCurrency = (val) => {
     return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(val);
@@ -29,27 +52,72 @@ export default function Header() {
     setEditingRenda(false);
   };
 
+  const handleFileImport = (e) => {
+    if (e.target.files && e.target.files[0]) {
+      importDataJSON(e.target.files[0]);
+    }
+  };
+
+  // Export PDF functionality using html2pdf
+  const handleExportPDF = () => {
+    setIsGeneratingPDF(true);
+    const element = document.getElementById('app-main-content') || document.body;
+
+    const opt = {
+      margin: [10, 10, 10, 10],
+      filename: `plano_financeiro_familiar_${new Date().toISOString().slice(0,10)}.pdf`,
+      image: { type: 'jpeg', quality: 0.98 },
+      html2canvas: { scale: 2, useCORS: true, logging: false },
+      jsPDF: { unit: 'mm', format: 'a4', orientation: 'landscape' }
+    };
+
+    html2pdf().set(opt).from(element).save().then(() => {
+      setIsGeneratingPDF(false);
+    }).catch(err => {
+      console.error('PDF export error:', err);
+      setIsGeneratingPDF(false);
+    });
+  };
+
   const renda = getRendaLiquida();
   const gastos = getTotalGastos();
   const poupanca = getPoupancaMensal();
   const taxaPoupanca = getTaxaPoupanca();
 
   return (
-    <header style={{ marginBottom: '32px' }}>
+    <header style={{ marginBottom: '28px' }}>
+      {/* Live Market Indicators Ticker Bar */}
+      <div style={{
+        background: 'var(--bg-secondary)',
+        border: '1px solid var(--border-color)',
+        borderRadius: 'var(--radius-sm)',
+        padding: '6px 16px',
+        marginBottom: '16px',
+        display: 'flex',
+        justify: 'space-between',
+        alignItems: 'center',
+        flexWrap: 'wrap',
+        gap: '12px',
+        fontSize: '0.78rem',
+        color: 'var(--text-secondary)'
+      }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '16px', flexWrap: 'wrap' }}>
+          <span style={{ fontWeight: 700, color: 'var(--accent-blue)', display: 'flex', alignItems: 'center', gap: '4px' }}>
+            <Globe size={13} /> Mercado ao Vivo (BCB):
+          </span>
+          <span>SELIC: <strong>{marketData.selic}% a.a.</strong></span>
+          <span>IPCA (Inflação): <strong>{marketData.ipca}% a.a.</strong></span>
+          <span>USD: <strong>R$ {marketData.usd}</strong></span>
+          <span>EUR: <strong>R$ {marketData.eur}</strong></span>
+        </div>
+
+        <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>
+          {marketData.updatedAt ? `Atualizado às ${marketData.updatedAt}` : 'Indicadores do Mercado'}
+        </div>
+      </div>
+
       {/* Top Banner / Navigation */}
       <div className="glass-card" style={{ padding: '24px', marginBottom: '24px', position: 'relative', overflow: 'hidden' }}>
-        {/* Glow effect */}
-        <div style={{
-          position: 'absolute',
-          top: '-50px',
-          right: '-50px',
-          width: '200px',
-          height: '200px',
-          background: 'radial-gradient(circle, rgba(59, 130, 246, 0.25) 0%, rgba(0,0,0,0) 70%)',
-          borderRadius: '50%',
-          pointerEvents: 'none'
-        }} />
-
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '16px' }}>
           <div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
@@ -66,17 +134,56 @@ export default function Header() {
           </div>
 
           {/* Header Action Buttons */}
-          <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
+          <div style={{ display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap' }}>
+            {/* Export PDF Button */}
+            <button
+              onClick={handleExportPDF}
+              className="btn btn-primary"
+              disabled={isGeneratingPDF}
+              style={{ padding: '8px 14px', fontSize: '0.85rem' }}
+              title="Gerar e Baixar Relatório em PDF"
+            >
+              <FileDown size={16} />
+              {isGeneratingPDF ? 'Gerando PDF...' : 'Baixar PDF'}
+            </button>
+
+            {/* Backup JSON Buttons */}
+            <button
+              onClick={exportDataJSON}
+              className="btn btn-outline"
+              title="Exportar dados em JSON"
+              style={{ padding: '8px 12px' }}
+            >
+              <Download size={15} />
+            </button>
+
+            <button
+              onClick={() => fileInputRef.current && fileInputRef.current.click()}
+              className="btn btn-outline"
+              title="Importar dados em JSON"
+              style={{ padding: '8px 12px' }}
+            >
+              <Upload size={15} />
+            </button>
+            <input
+              type="file"
+              ref={fileInputRef}
+              onChange={handleFileImport}
+              accept=".json"
+              style={{ display: 'none' }}
+            />
+
+            {/* Rules Button */}
             <button
               onClick={() => setIsRulesOpen(true)}
               className="btn btn-outline"
               title="Regras de Ouro"
-              style={{ display: 'flex', alignItems: 'center', gap: '6px' }}
+              style={{ padding: '8px 12px' }}
             >
               <ShieldCheck size={16} color="var(--accent-amber)" />
-              <span style={{ display: 'inline' }}>Regras de Ouro</span>
             </button>
 
+            {/* Theme Toggle */}
             <button
               onClick={toggleDarkMode}
               className="btn btn-outline"
@@ -86,9 +193,10 @@ export default function Header() {
               {darkMode ? <Sun size={18} color="#f59e0b" /> : <Moon size={18} color="#3b82f6" />}
             </button>
 
+            {/* Reset Data */}
             <button
               onClick={() => {
-                if (window.confirm('Deseja restaurar os dados padrões do infográfico?')) {
+                if (window.confirm('Deseja restaurar os dados padrões?')) {
                   resetToDefault();
                 }
               }}
