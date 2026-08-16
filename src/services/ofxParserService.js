@@ -2,8 +2,19 @@
 
 import { categorizeTransaction } from './openFinanceService';
 
+// Check if string is HTML or user account page
+export function isHTMLAccountPage(text) {
+  if (typeof text !== 'string') return false;
+  return text.includes('Excluir conta') || text.includes('Meu Pluggy') || text.includes('<html') || text.includes('DOCTYPE');
+}
+
 // Parse OFX Content (Standard Banking Format)
 export function parseOFXStatement(ofxText) {
+  if (isHTMLAccountPage(ofxText)) {
+    console.warn('Conteúdo detectado como página HTML do meu.pluggy.ai em vez de arquivo de extrato OFX/CSV.');
+    return [];
+  }
+
   const transactions = [];
 
   // Match STMTTRN blocks
@@ -20,7 +31,6 @@ export function parseOFXStatement(ofxText) {
 
     const rawAmt = amountMatch ? parseFloat(amountMatch[1].trim()) : 0;
 
-    // Only process debit/expenses (negative amounts) or absolute value
     if (rawAmt < 0 || true) {
       const description = (nameMatch ? nameMatch[1].trim() : (memoMatch ? memoMatch[1].trim() : 'Transação OFX'));
       const rawDate = dateMatch ? dateMatch[1].trim().slice(0, 8) : '';
@@ -45,14 +55,17 @@ export function parseOFXStatement(ofxText) {
 
 // Parse CSV Content (General Bank CSV export format)
 export function parseCSVStatement(csvText) {
+  if (isHTMLAccountPage(csvText)) {
+    return [];
+  }
+
   const lines = csvText.split(/\r?\n/);
   const transactions = [];
 
   for (let i = 0; i < lines.length; i++) {
     const line = lines[i].trim();
-    if (!line) continue;
+    if (!line || line.includes('<') || line.includes('Excluir')) continue;
 
-    // Split by comma or semicolon
     const parts = line.split(/[,;]/);
 
     if (parts.length >= 3) {
@@ -80,6 +93,11 @@ export function parseCSVStatement(csvText) {
 
 // Master File Parser based on extension
 export function parseBankStatementFile(fileContent, fileName = '') {
+  if (isHTMLAccountPage(fileContent)) {
+    alert('O arquivo selecionado é uma página da web (HTML) do meu.pluggy.ai. Por favor, selecione um arquivo de extrato válido no formato .OFX ou .CSV baixado do seu banco.');
+    return [];
+  }
+
   const lowerName = fileName.toLowerCase();
 
   if (lowerName.endsWith('.ofx')) {
