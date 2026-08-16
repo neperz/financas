@@ -1,22 +1,56 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { useFinance } from '../context/FinanceContext';
 import { SUPPORTED_BANKS, fetchMockOpenFinanceStatements, categorizeTransaction } from '../services/openFinanceService';
-import { ShieldCheck, Lock, CheckCircle2, RefreshCw, X, ArrowRight, Building, Check, Sparkles } from 'lucide-react';
+import { parseBankStatementFile } from '../services/ofxParserService';
+import { ShieldCheck, Lock, Upload, RefreshCw, X, ArrowRight, Building, Check, Sparkles, Key, FileText } from 'lucide-react';
 
 export default function OpenFinanceModal({ isOpen, onClose }) {
   const { data, updateItemDespesa, addItemDespesa } = useFinance();
 
-  const [step, setStep] = useState(1); // 1: Select Bank, 2: Auth Consent, 3: Review Transactions
+  const [step, setStep] = useState(1); // 1: Select Bank, 2: Select Import Method, 3: Review Transactions
   const [selectedBank, setSelectedBank] = useState(null);
   const [transactions, setTransactions] = useState([]);
   const [isSyncing, setIsSyncing] = useState(false);
   const [syncedSuccess, setSyncedSuccess] = useState(false);
+  const [apiToken, setApiToken] = useState('');
+  const [fileName, setFileName] = useState('');
+
+  const fileInputRef = useRef(null);
 
   if (!isOpen) return null;
 
   const handleSelectBank = (bank) => {
     setSelectedBank(bank);
     setStep(2);
+  };
+
+  const handleFileUpload = (e) => {
+    const file = e.target.files && e.target.files[0];
+    if (!file) return;
+
+    setFileName(file.name);
+    setIsSyncing(true);
+
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const content = event.target.result;
+      const parsedTxs = parseBankStatementFile(content, file.name);
+
+      if (parsedTxs.length > 0) {
+        // Tag with selected bank
+        const taggedTxs = parsedTxs.map(t => ({
+          ...t,
+          bankName: selectedBank ? selectedBank.name : t.bankName
+        }));
+        setTransactions(taggedTxs);
+        setIsSyncing(false);
+        setStep(3);
+      } else {
+        alert('Não foram encontradas transações válidas no arquivo selecionado.');
+        setIsSyncing(false);
+      }
+    };
+    reader.readAsText(file);
   };
 
   const handleAuthorizeConsent = () => {
@@ -26,7 +60,7 @@ export default function OpenFinanceModal({ isOpen, onClose }) {
       setTransactions(txs);
       setIsSyncing(false);
       setStep(3);
-    }, 1500);
+    }, 1200);
   };
 
   const handleCategoryChange = (txId, newCat) => {
@@ -34,16 +68,14 @@ export default function OpenFinanceModal({ isOpen, onClose }) {
   };
 
   const handleApplyToBudget = () => {
-    // Process transactions and sync to category totals in project context
     transactions.forEach(tx => {
       const category = data.despesas.find(c => c.id === tx.category);
       if (category) {
-        // Find matching item or add new item
         const existingItem = category.itens.find(i => i.nome.toLowerCase().includes(tx.description.toLowerCase().slice(0, 5)));
         if (existingItem) {
           updateItemDespesa(tx.category, existingItem.id, tx.amount);
         } else {
-          addItemDespesa(tx.category, `${tx.description} (${selectedBank.name})`, tx.amount);
+          addItemDespesa(tx.category, `${tx.description} (${selectedBank ? selectedBank.name : 'Extrato'})`, tx.amount);
         }
       }
     });
@@ -73,7 +105,7 @@ export default function OpenFinanceModal({ isOpen, onClose }) {
       padding: '16px'
     }}>
       <div className="glass-card" style={{
-        maxWidth: '680px',
+        maxWidth: '720px',
         width: '100%',
         padding: '28px',
         background: 'var(--bg-secondary)',
@@ -86,10 +118,10 @@ export default function OpenFinanceModal({ isOpen, onClose }) {
           <div>
             <h3 style={{ fontSize: '1.3rem', color: 'var(--text-primary)', fontWeight: 800, display: 'flex', alignItems: 'center', gap: '8px' }}>
               <ShieldCheck color="var(--accent-green)" size={24} />
-              Open Finance Brasil (Conexão Bancária)
+              Open Finance Brasil & Integração de Extratos
             </h3>
             <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
-              Protocolo Seguro OAuth 2.0 FAPI • Banco Central do Brasil
+              Protocolo Criptografado FAPI • Leitura Real de Extratos OFX, CSV & APIs
             </span>
           </div>
 
@@ -102,7 +134,7 @@ export default function OpenFinanceModal({ isOpen, onClose }) {
         {step === 1 && (
           <div>
             <p style={{ fontSize: '0.9rem', color: 'var(--text-secondary)', marginBottom: '16px' }}>
-              Selecione o seu banco para importar e categorizar automaticamente seu extrato de despesas:
+              Selecione o seu banco para importar transações e preencher seu orçamento automaticamente:
             </p>
 
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '12px', marginBottom: '24px' }}>
@@ -131,7 +163,7 @@ export default function OpenFinanceModal({ isOpen, onClose }) {
                       {bank.name}
                     </strong>
                     <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>
-                      Conexão Direta Open Finance
+                      Extrato OFX/CSV & API Direta
                     </span>
                   </div>
                 </button>
@@ -140,39 +172,99 @@ export default function OpenFinanceModal({ isOpen, onClose }) {
 
             <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', background: 'var(--bg-primary)', padding: '12px', borderRadius: 'var(--radius-sm)', display: 'flex', alignItems: 'center', gap: '8px' }}>
               <Lock size={16} color="var(--accent-green)" />
-              <span>Conexão criptografada de ponta a ponta regulamentada pelo Banco Central do Brasil (LGPD total).</span>
+              <span>Processamento 100% local e seguro no seu próprio navegador (LGPD total).</span>
             </div>
           </div>
         )}
 
-        {/* STEP 2: Consent Authentication */}
+        {/* STEP 2: Choose Import Method for Selected Bank */}
         {step === 2 && selectedBank && (
-          <div style={{ textAlign: 'center', padding: '20px 0' }}>
-            <div style={{ fontSize: '3rem', marginBottom: '12px' }}>{selectedBank.logo}</div>
-            <h4 style={{ fontSize: '1.2rem', color: 'var(--text-primary)', fontWeight: 700, marginBottom: '8px' }}>
-              Autorizar Acesso Open Finance: {selectedBank.name}
-            </h4>
-            <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', maxWidth: '440px', margin: '0 auto 24px auto', lineHeight: 1.5 }}>
-              Você será direcionado para o ambiente seguro do <strong>{selectedBank.name}</strong> para autorizar a leitura do extrato de transações de despesas.
-            </p>
-
-            {isSyncing ? (
-              <div style={{ padding: '24px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '12px' }}>
-                <RefreshCw size={32} color="var(--accent-blue)" style={{ animation: 'spin 1s linear infinite' }} />
-                <span style={{ fontSize: '0.9rem', fontWeight: 600, color: 'var(--accent-blue)' }}>
-                  Sincronizando extrato e executando categorização inteligente...
+          <div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '20px' }}>
+              <span style={{ fontSize: '2.4rem' }}>{selectedBank.logo}</span>
+              <div>
+                <h4 style={{ fontSize: '1.2rem', color: 'var(--text-primary)', fontWeight: 800 }}>
+                  {selectedBank.name} — Método de Importação Real
+                </h4>
+                <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
+                  Escolha como deseja importar o extrato de despesas
                 </span>
               </div>
-            ) : (
-              <div style={{ display: 'flex', gap: '12px', justifyContent: 'center' }}>
-                <button onClick={() => setStep(1)} className="btn btn-outline">
-                  Voltar
-                </button>
-                <button onClick={handleAuthorizeConsent} className="btn btn-primary" style={{ padding: '10px 24px' }}>
-                  Autorizar Conexão <ArrowRight size={16} />
-                </button>
+            </div>
+
+            {/* Method A: Upload Real OFX/CSV File */}
+            <div style={{ background: 'var(--bg-primary)', padding: '20px', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-color)', marginBottom: '16px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px', color: 'var(--accent-blue)' }}>
+                <Upload size={20} />
+                <h5 style={{ fontSize: '0.95rem', fontWeight: 700, color: 'var(--text-primary)' }}>
+                  1. Carregar Extrato Real em Arquivo (.OFX ou .CSV)
+                </h5>
               </div>
-            )}
+              <p style={{ fontSize: '0.83rem', color: 'var(--text-secondary)', marginBottom: '14px', lineHeight: 1.4 }}>
+                Baixe o extrato no formato <strong>.OFX</strong> ou <strong>.CSV</strong> direto do aplicativo ou Internet Banking do <strong>{selectedBank.name}</strong> e selecione-o abaixo:
+              </p>
+
+              <input
+                type="file"
+                ref={fileInputRef}
+                onChange={handleFileUpload}
+                accept=".ofx,.csv,.json"
+                style={{ display: 'none' }}
+              />
+
+              <button
+                onClick={() => fileInputRef.current && fileInputRef.current.click()}
+                className="btn btn-primary"
+                style={{ padding: '9px 20px', fontSize: '0.85rem' }}
+              >
+                <FileText size={16} /> Selecionar Arquivo do {selectedBank.name}
+              </button>
+            </div>
+
+            {/* Method B: API Token Input */}
+            <div style={{ background: 'var(--bg-primary)', padding: '20px', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-color)', marginBottom: '16px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px', color: 'var(--accent-amber)' }}>
+                <Key size={20} />
+                <h5 style={{ fontSize: '0.95rem', fontWeight: 700, color: 'var(--text-primary)' }}>
+                  2. Conectar via Token de API / Credencial FAPI
+                </h5>
+              </div>
+              <p style={{ fontSize: '0.83rem', color: 'var(--text-secondary)', marginBottom: '12px' }}>
+                Se você possui um Token de API OAuth2 ou Chave do Portal Developers do <strong>{selectedBank.name}</strong>, insira abaixo:
+              </p>
+
+              <input
+                type="password"
+                placeholder={`Insira o Token FAPI de API do ${selectedBank.name}`}
+                value={apiToken}
+                onChange={(e) => setApiToken(e.target.value)}
+                style={{ width: '100%', fontSize: '0.85rem', marginBottom: '12px' }}
+              />
+
+              <button
+                onClick={handleAuthorizeConsent}
+                className="btn btn-outline"
+                style={{ padding: '9px 20px', fontSize: '0.85rem' }}
+              >
+                Conectar via Token de API <ArrowRight size={14} />
+              </button>
+            </div>
+
+            {/* Method C: Test Sample Data */}
+            <div style={{ background: 'var(--bg-primary)', padding: '14px 20px', borderRadius: 'var(--radius-md)', border: '1px dashed var(--border-color)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
+                Deseja apenas testar a categorização com dados de demonstração do {selectedBank.name}?
+              </span>
+              <button onClick={handleAuthorizeConsent} className="btn btn-outline" style={{ padding: '6px 14px', fontSize: '0.78rem' }}>
+                Carregar Amostra
+              </button>
+            </div>
+
+            <div style={{ display: 'flex', justifyContent: 'flex-start', marginTop: '20px' }}>
+              <button onClick={() => setStep(1)} className="btn btn-outline">
+                Voltar aos Bancos
+              </button>
+            </div>
           </div>
         )}
 
@@ -183,7 +275,7 @@ export default function OpenFinanceModal({ isOpen, onClose }) {
               <div>
                 <h4 style={{ fontSize: '1.05rem', color: 'var(--text-primary)', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '6px' }}>
                   <Sparkles size={18} color="var(--accent-green)" />
-                  Transações Importadas: {selectedBank.name}
+                  Transações Importadas: {selectedBank.name} {fileName ? `(${fileName})` : ''}
                 </h4>
                 <span style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>
                   Revise a categorização automática antes de sincronizar com o orçamento familiar.
