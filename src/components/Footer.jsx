@@ -50,7 +50,7 @@ export default function Footer() {
           Fontes: IBGE, ANS, DIEESE, pesquisa de mercado e consultoria financeira.
         </p>
         <p style={{ marginTop: '4px' }}>
-          Aplicação de Planejamento Financeiro Familiar.
+          Plano Financeiro Familiar © {new Date().getFullYear()} WikiCode Informática LTDA. Todos os direitos reservados.
         </p>
       </div>
     </footer>
