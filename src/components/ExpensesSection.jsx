@@ -51,6 +51,7 @@ export default function ExpensesSection() {
   const [newItemName, setNewItemName] = useState({});
   const [newItemValue, setNewItemValue] = useState({});
   const [dragOverCatId, setDragOverCatId] = useState(null);
+  const [draggedItem, setDraggedItem] = useState(null);
 
   const toggleExpand = (catId) => {
     setExpandedCat(prev => ({
@@ -159,23 +160,41 @@ export default function ExpensesSection() {
               key={categoria.id}
               onDragOver={(e) => {
                 e.preventDefault();
-                setDragOverCatId(categoria.id);
+                e.stopPropagation();
+                if (dragOverCatId !== categoria.id) {
+                  setDragOverCatId(categoria.id);
+                }
               }}
-              onDragLeave={() => setDragOverCatId(null)}
+              onDragLeave={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                setDragOverCatId(null);
+              }}
               onDrop={(e) => {
                 e.preventDefault();
+                e.stopPropagation();
                 setDragOverCatId(null);
-                try {
-                  const raw = e.dataTransfer.getData('text/plain');
-                  if (raw) {
-                    const payload = JSON.parse(raw);
-                    if (payload && payload.sourceCatId && payload.itemId) {
-                      moveItemDespesa(payload.sourceCatId, categoria.id, payload.itemId);
+
+                let sourceCatId = draggedItem?.sourceCatId;
+                let itemId = draggedItem?.itemId;
+
+                if (!sourceCatId || !itemId) {
+                  try {
+                    const raw = e.dataTransfer.getData('text/plain');
+                    if (raw) {
+                      const payload = JSON.parse(raw);
+                      sourceCatId = payload?.sourceCatId;
+                      itemId = payload?.itemId;
                     }
+                  } catch (err) {
+                    console.warn(err);
                   }
-                } catch (err) {
-                  console.warn('Erro drag and drop:', err);
                 }
+
+                if (sourceCatId && itemId && sourceCatId !== categoria.id) {
+                  moveItemDespesa(sourceCatId, categoria.id, itemId);
+                }
+                setDraggedItem(null);
               }}
               style={{
                 background: isTargetDrag ? 'rgba(59, 130, 246, 0.12)' : 'var(--bg-secondary)',
@@ -270,10 +289,18 @@ export default function ExpensesSection() {
                           key={item.id}
                           draggable={true}
                           onDragStart={(e) => {
+                            setDraggedItem({
+                              sourceCatId: categoria.id,
+                              itemId: item.id
+                            });
                             e.dataTransfer.setData('text/plain', JSON.stringify({
                               sourceCatId: categoria.id,
                               itemId: item.id
                             }));
+                          }}
+                          onDragEnd={() => {
+                            setDraggedItem(null);
+                            setDragOverCatId(null);
                           }}
                           style={{
                             display: 'flex',

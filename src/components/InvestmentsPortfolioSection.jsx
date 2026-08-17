@@ -56,7 +56,7 @@ export default function InvestmentsPortfolioSection() {
   };
 
   return (
-    <section className="glass-card" style={{ padding: '24px', minHeight: '440px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
+    <section className="glass-card" style={{ padding: '24px', height: '100%', minHeight: '480px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
       <div style={{ display: 'flex', flexDirection: 'column', flex: 1 }}>
         {/* Header */}
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', borderBottom: '1px solid var(--border-color)', paddingBottom: '14px' }}>
@@ -80,9 +80,9 @@ export default function InvestmentsPortfolioSection() {
           </div>
         </div>
 
-        {/* Scrollable Assets List matching container height */}
+        {/* Assets List filling full height of card */}
         {investments.length > 0 ? (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginBottom: '16px', flex: 1, minHeight: '220px', maxHeight: '340px', overflowY: 'auto', paddingRight: '4px' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginBottom: '16px', flex: 1, minHeight: '260px', overflowY: 'auto', paddingRight: '4px' }}>
             {investments.map((inv) => (
               <div
                 key={inv.id}

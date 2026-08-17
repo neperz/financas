@@ -329,14 +329,18 @@ export function FinanceProvider({ children }) {
   };
 
   const moveItemDespesa = (sourceCatId, targetCatId, itemId) => {
-    if (sourceCatId === targetCatId) return;
+    if (!sourceCatId || !targetCatId || !itemId || sourceCatId === targetCatId) return;
 
     setData(prev => {
       const sourceCategory = prev.despesas.find(c => c.id === sourceCatId);
-      if (!sourceCategory) return prev;
+      const targetCategory = prev.despesas.find(c => c.id === targetCatId);
 
-      const itemToMove = sourceCategory.itens.find(i => i.id === itemId);
+      if (!sourceCategory || !targetCategory) return prev;
+
+      const itemToMove = sourceCategory.itens.find(i => String(i.id) === String(itemId));
       if (!itemToMove) return prev;
+
+      const alreadyInTarget = targetCategory.itens.some(i => String(i.id) === String(itemId));
 
       return {
         ...prev,
@@ -344,13 +348,13 @@ export function FinanceProvider({ children }) {
           if (cat.id === sourceCatId) {
             return {
               ...cat,
-              itens: cat.itens.filter(i => i.id !== itemId)
+              itens: cat.itens.filter(i => String(i.id) !== String(itemId))
             };
           }
           if (cat.id === targetCatId) {
             return {
               ...cat,
-              itens: [...cat.itens, itemToMove]
+              itens: alreadyInTarget ? cat.itens : [...cat.itens, itemToMove]
             };
           }
           return cat;
