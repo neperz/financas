@@ -328,6 +328,37 @@ export function FinanceProvider({ children }) {
     }));
   };
 
+  const moveItemDespesa = (sourceCatId, targetCatId, itemId) => {
+    if (sourceCatId === targetCatId) return;
+
+    setData(prev => {
+      const sourceCategory = prev.despesas.find(c => c.id === sourceCatId);
+      if (!sourceCategory) return prev;
+
+      const itemToMove = sourceCategory.itens.find(i => i.id === itemId);
+      if (!itemToMove) return prev;
+
+      return {
+        ...prev,
+        despesas: prev.despesas.map(cat => {
+          if (cat.id === sourceCatId) {
+            return {
+              ...cat,
+              itens: cat.itens.filter(i => i.id !== itemId)
+            };
+          }
+          if (cat.id === targetCatId) {
+            return {
+              ...cat,
+              itens: [...cat.itens, itemToMove]
+            };
+          }
+          return cat;
+        })
+      };
+    });
+  };
+
   const updateReservaEmergencia = (novosCampos) => {
     setData(prev => ({
       ...prev,
@@ -430,6 +461,7 @@ export function FinanceProvider({ children }) {
       updateItemDespesa,
       addItemDespesa,
       deleteItemDespesa,
+      moveItemDespesa,
       updateReservaEmergencia,
       updateObjetivo,
       addObjetivo,

@@ -56,8 +56,8 @@ export default function InvestmentsPortfolioSection() {
   };
 
   return (
-    <section className="glass-card" style={{ padding: '24px', height: '100%', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
-      <div>
+    <section className="glass-card" style={{ padding: '24px', minHeight: '440px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
+      <div style={{ display: 'flex', flexDirection: 'column', flex: 1 }}>
         {/* Header */}
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', borderBottom: '1px solid var(--border-color)', paddingBottom: '14px' }}>
           <div>
@@ -80,9 +80,9 @@ export default function InvestmentsPortfolioSection() {
           </div>
         </div>
 
-        {/* Assets List */}
+        {/* Scrollable Assets List matching container height */}
         {investments.length > 0 ? (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginBottom: '20px', maxHeight: '240px', overflowY: 'auto', paddingRight: '4px' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginBottom: '16px', flex: 1, minHeight: '220px', maxHeight: '340px', overflowY: 'auto', paddingRight: '4px' }}>
             {investments.map((inv) => (
               <div
                 key={inv.id}
@@ -143,17 +143,17 @@ export default function InvestmentsPortfolioSection() {
             ))}
           </div>
         ) : (
-          <div style={{ background: 'var(--bg-primary)', padding: '16px', borderRadius: 'var(--radius-md)', textAlign: 'center', border: '1px solid var(--border-color)', marginBottom: '20px' }}>
-            <Sparkles size={24} color="var(--accent-green)" style={{ marginBottom: '6px' }} />
-            <span style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', display: 'block' }}>
-              Nenhum ativo de investimento lançado. Conecte com o <strong>meu.pluggy.ai</strong> ou lance manualmente abaixo.
+          <div style={{ background: 'var(--bg-primary)', padding: '20px', borderRadius: 'var(--radius-md)', textAlign: 'center', border: '1px solid var(--border-color)', marginBottom: '16px', flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
+            <Sparkles size={28} color="var(--accent-green)" style={{ marginBottom: '8px' }} />
+            <span style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
+              Nenhum ativo de investimento lançado. Conecte com o <strong>meu.pluggy.ai</strong> ou adicione abaixo.
             </span>
           </div>
         )}
       </div>
 
       {/* Manual Asset Creation Form */}
-      <form onSubmit={handleAddAsset} style={{ background: 'var(--bg-primary)', padding: '14px', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-color)' }}>
+      <form onSubmit={handleAddAsset} style={{ background: 'var(--bg-primary)', padding: '14px', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-color)', marginTop: 'auto' }}>
         <span style={{ fontSize: '0.78rem', fontWeight: 700, color: 'var(--text-primary)', display: 'block', marginBottom: '8px' }}>
           + Lançar Novo Ativo de Investimento:
         </span>

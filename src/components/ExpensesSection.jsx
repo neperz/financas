@@ -15,7 +15,10 @@ import {
   ChevronUp,
   AlertTriangle,
   CheckCircle2,
-  Info
+  Info,
+  RotateCcw,
+  GripVertical,
+  Move
 } from 'lucide-react';
 
 const ICON_MAP = {
@@ -40,71 +43,96 @@ export default function ExpensesSection() {
     updateItemDespesa,
     addItemDespesa,
     deleteItemDespesa,
+    moveItemDespesa,
     clearAllDespesas
   } = useFinance();
 
   const [expandedCat, setExpandedCat] = useState({});
   const [newItemName, setNewItemName] = useState({});
   const [newItemValue, setNewItemValue] = useState({});
+  const [dragOverCatId, setDragOverCatId] = useState(null);
 
   const toggleExpand = (catId) => {
-    setExpandedCat(prev => ({ ...prev, [catId]: !prev[catId] }));
+    setExpandedCat(prev => ({
+      ...prev,
+      [catId]: prev[catId] === false ? true : false
+    }));
   };
 
-  const handleAddItem = (catId) => {
+  const handleAddItem = (e, catId) => {
+    e.preventDefault();
     const name = newItemName[catId];
-    const val = newItemValue[catId];
-    if (name && val) {
-      addItemDespesa(catId, name, val);
+    const value = newItemValue[catId];
+
+    if (name && value) {
+      addItemDespesa(catId, name, value);
       setNewItemName(prev => ({ ...prev, [catId]: '' }));
       setNewItemValue(prev => ({ ...prev, [catId]: '' }));
     }
   };
 
+  const totalGastos = getTotalGastos();
+  const renda = getRendaLiquida();
+  const totalPct = renda > 0 ? (totalGastos / renda) * 100 : 0;
+
   const formatCurrency = (val) => {
     return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(val);
   };
 
-  const totalGastos = getTotalGastos();
-  const renda = getRendaLiquida();
-  const totalPct = (totalGastos / renda) * 100;
+  const handleResetDespesas = () => {
+    if (window.confirm('Tem certeza que deseja zerar todas as 8 categorias de despesas? Todos os itens serão apagados para um orçamento limpo.')) {
+      clearAllDespesas();
+    }
+  };
 
   return (
     <section className="glass-card" style={{ padding: '24px', marginBottom: '32px' }}>
-      {/* Section Header */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px', marginBottom: '20px', borderBottom: '1px solid var(--border-color)', pb: '16px' }}>
-        <div>
-          <h2 style={{ fontSize: '1.4rem', color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '8px' }}>
-            1. DESPESAS MENSAIS DA FAMÍLIA
-          </h2>
-          <p style={{ fontSize: '0.875rem', color: 'var(--text-muted)' }}>
-            Detalhamento por categoria, meta de percentual ideal e indicador de saúde do gasto.
-          </p>
-        </div>
+      {/* Header */}
+      <div style={{ marginBottom: '20px', borderBottom: '1px solid var(--border-color)', paddingBottom: '16px' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '16px' }}>
+          <div>
+            <h2 style={{ fontSize: '1.4rem', color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <ShoppingBag color="var(--accent-blue)" size={24} />
+              1. DESPESAS MENSAIS DA FAMÍLIA (8 CATEGORIAS)
+            </h2>
+            <p style={{ fontSize: '0.875rem', color: 'var(--text-muted)', marginTop: '4px' }}>
+              Subdivisão recomendada para diagnosticar ralos financeiros e equilibrar o orçamento.
+            </p>
+          </div>
 
-        {/* Global Total Badge & Clear Button */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-          <button
-            onClick={() => {
-              if (window.confirm('Deseja remover todos os itens de despesas importados e restaurar as categorias padrão?')) {
-                clearAllDespesas();
-              }
-            }}
-            className="btn btn-outline"
-            style={{ fontSize: '0.78rem', borderColor: 'rgba(244,63,94,0.4)', color: 'var(--accent-rose)', padding: '6px 12px' }}
-            title="Limpar itens importados e restaurar despesas padrão"
-          >
-            <Trash2 size={14} /> Resetar Despesas
-          </button>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+            <button
+              onClick={handleResetDespesas}
+              className="btn btn-outline"
+              style={{
+                fontSize: '0.8rem',
+                borderColor: 'rgba(244, 63, 94, 0.4)',
+                color: 'var(--accent-rose)',
+                padding: '6px 12px',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '6px'
+              }}
+              title="Zerar todos os itens de despesas para um orçamento limpo"
+            >
+              <RotateCcw size={14} /> Zerar Despesas
+            </button>
 
-          <div style={{ textAlign: 'right' }}>
-            <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)', textTransform: 'uppercase' }}>
-              Total Geral das Despesas
-            </span>
-            <div style={{ fontSize: '1.4rem', fontWeight: 'bold', color: 'var(--accent-blue)' }}>
-              {formatCurrency(totalGastos)} <span style={{ fontSize: '0.9rem', color: 'var(--text-muted)' }}>({totalPct.toFixed(1)}%)</span>
+            <div style={{ textAlign: 'right' }}>
+              <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)', textTransform: 'uppercase' }}>
+                Total Geral das Despesas
+              </span>
+              <div style={{ fontSize: '1.4rem', fontWeight: 'bold', color: 'var(--accent-blue)' }}>
+                {formatCurrency(totalGastos)} <span style={{ fontSize: '0.9rem', color: 'var(--text-muted)' }}>({totalPct.toFixed(1)}%)</span>
+              </div>
             </div>
           </div>
+        </div>
+
+        {/* Drag and Drop Tip Banner */}
+        <div style={{ background: 'rgba(59, 130, 246, 0.08)', border: '1px solid rgba(59, 130, 246, 0.2)', padding: '8px 14px', borderRadius: 'var(--radius-sm)', marginTop: '12px', display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.8rem', color: 'var(--accent-blue)' }}>
+          <Move size={15} />
+          <span><strong>Dica de Usabilidade:</strong> Arraste e solte (Drag & Drop) qualquer item entre os cards das 8 categorias para reclassificar despesas facilmente!</span>
         </div>
       </div>
 
@@ -116,6 +144,7 @@ export default function ExpensesSection() {
           const pctCat = getCategoriaPct(categoria.id);
           const status = getCategoriaStatus(categoria);
           const isExpanded = expandedCat[categoria.id] !== false; // default open
+          const isTargetDrag = dragOverCatId === categoria.id;
 
           const idealText = categoria.idealPctMin && categoria.idealPctMax
             ? `Ideal: ${categoria.idealPctMin}% a ${categoria.idealPctMax}%`
@@ -128,12 +157,33 @@ export default function ExpensesSection() {
           return (
             <div
               key={categoria.id}
+              onDragOver={(e) => {
+                e.preventDefault();
+                setDragOverCatId(categoria.id);
+              }}
+              onDragLeave={() => setDragOverCatId(null)}
+              onDrop={(e) => {
+                e.preventDefault();
+                setDragOverCatId(null);
+                try {
+                  const raw = e.dataTransfer.getData('text/plain');
+                  if (raw) {
+                    const payload = JSON.parse(raw);
+                    if (payload && payload.sourceCatId && payload.itemId) {
+                      moveItemDespesa(payload.sourceCatId, categoria.id, payload.itemId);
+                    }
+                  }
+                } catch (err) {
+                  console.warn('Erro drag and drop:', err);
+                }
+              }}
               style={{
-                background: 'var(--bg-secondary)',
-                border: '1px solid var(--border-color)',
+                background: isTargetDrag ? 'rgba(59, 130, 246, 0.12)' : 'var(--bg-secondary)',
+                border: isTargetDrag ? '2px dashed var(--accent-blue)' : '1px solid var(--border-color)',
                 borderRadius: 'var(--radius-md)',
                 overflow: 'hidden',
-                transition: 'all 0.2s ease'
+                transition: 'all 0.2s ease',
+                boxShadow: isTargetDrag ? '0 0 16px rgba(59, 130, 246, 0.25)' : 'none'
               }}
             >
               {/* Category Header Bar */}
@@ -206,7 +256,7 @@ export default function ExpensesSection() {
                 </button>
               </div>
 
-              {/* Collapsible Sub-items List */}
+              {/* Collapsible Sub-items List with Drag & Drop */}
               {isExpanded && (
                 <div style={{
                   borderTop: '1px solid var(--border-color)',
@@ -214,65 +264,91 @@ export default function ExpensesSection() {
                   padding: '12px 16px'
                 }}>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginBottom: '12px' }}>
-                    {categoria.itens.map((item) => (
-                      <div
-                        key={item.id}
-                        style={{
-                          display: 'flex',
-                          justify: 'space-between',
-                          alignItems: 'center',
-                          gap: '8px',
-                          fontSize: '0.85rem'
-                        }}
-                      >
-                        <span style={{ color: 'var(--text-secondary)', flex: 1 }}>
-                          {item.nome}
-                        </span>
+                    {categoria.itens.length > 0 ? (
+                      categoria.itens.map((item) => (
+                        <div
+                          key={item.id}
+                          draggable={true}
+                          onDragStart={(e) => {
+                            e.dataTransfer.setData('text/plain', JSON.stringify({
+                              sourceCatId: categoria.id,
+                              itemId: item.id
+                            }));
+                          }}
+                          style={{
+                            display: 'flex',
+                            justify: 'space-between',
+                            alignItems: 'center',
+                            gap: '8px',
+                            fontSize: '0.85rem',
+                            padding: '6px 8px',
+                            borderRadius: 'var(--radius-sm)',
+                            background: 'var(--bg-secondary)',
+                            cursor: 'grab',
+                            border: '1px solid var(--border-color)',
+                            transition: 'all 0.15s ease'
+                          }}
+                        >
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flex: 1, minWidth: 0 }}>
+                            <GripVertical size={14} color="var(--text-muted)" style={{ cursor: 'grab', flexShrink: 0 }} />
+                            <span style={{ color: 'var(--text-secondary)', fontWeight: 600, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                              {item.nome}
+                            </span>
+                          </div>
 
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                          <span style={{ color: 'var(--text-muted)', fontSize: '0.75rem' }}>R$</span>
-                          <input
-                            type="number"
-                            value={item.valor}
-                            onChange={(e) => updateItemDespesa(categoria.id, item.id, e.target.value)}
-                            style={{ width: '90px', padding: '3px 6px', fontSize: '0.85rem', textAlign: 'right' }}
-                          />
-                          <button
-                            onClick={() => deleteItemDespesa(categoria.id, item.id)}
-                            style={{ background: 'none', border: 'none', color: 'var(--accent-rose)', cursor: 'pointer', padding: '2px' }}
-                            title="Remover item"
-                          >
-                            <Trash2 size={14} />
-                          </button>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexShrink: 0 }}>
+                            <span style={{ color: 'var(--text-muted)', fontSize: '0.75rem' }}>R$</span>
+                            <input
+                              type="number"
+                              value={item.valor}
+                              onChange={(e) => updateItemDespesa(categoria.id, item.id, e.target.value)}
+                              style={{ width: '90px', padding: '3px 6px', fontSize: '0.85rem', textAlign: 'right' }}
+                            />
+                            <button
+                              onClick={() => deleteItemDespesa(categoria.id, item.id)}
+                              style={{ background: 'none', border: 'none', color: 'var(--accent-rose)', cursor: 'pointer', padding: '2px' }}
+                              title="Remover item"
+                            >
+                              <Trash2 size={14} />
+                            </button>
+                          </div>
                         </div>
+                      ))
+                    ) : (
+                      <div style={{ padding: '8px', textAlign: 'center', color: 'var(--text-muted)', fontSize: '0.78rem', fontStyle: 'italic' }}>
+                        Nenhum item nesta categoria. Arraste um item para cá!
                       </div>
-                    ))}
+                    )}
                   </div>
 
                   {/* Add New Item Form */}
-                  <div style={{ display: 'flex', gap: '6px', marginTop: '8px', paddingTop: '8px', borderTop: '1px dashed var(--border-color)' }}>
+                  <form
+                    onSubmit={(e) => handleAddItem(e, categoria.id)}
+                    style={{ display: 'flex', gap: '6px' }}
+                  >
                     <input
                       type="text"
                       placeholder="Novo item..."
                       value={newItemName[categoria.id] || ''}
-                      onChange={(e) => setNewItemName({ ...newItemName, [categoria.id]: e.target.value })}
-                      style={{ flex: 2, fontSize: '0.8rem', padding: '4px 8px' }}
+                      onChange={(e) => setNewItemName(prev => ({ ...prev, [categoria.id]: e.target.value }))}
+                      style={{ flex: 1, fontSize: '0.8rem', padding: '4px 8px' }}
                     />
                     <input
                       type="number"
                       placeholder="R$"
                       value={newItemValue[categoria.id] || ''}
-                      onChange={(e) => setNewItemValue({ ...newItemValue, [categoria.id]: e.target.value })}
-                      style={{ flex: 1, fontSize: '0.8rem', padding: '4px 8px', width: '70px' }}
+                      onChange={(e) => setNewItemValue(prev => ({ ...prev, [categoria.id]: e.target.value }))}
+                      style={{ width: '70px', fontSize: '0.8rem', padding: '4px 8px', textAlign: 'right' }}
                     />
                     <button
-                      onClick={() => handleAddItem(categoria.id)}
+                      type="submit"
                       className="btn btn-primary"
                       style={{ padding: '4px 8px', fontSize: '0.8rem' }}
+                      title="Adicionar item"
                     >
                       <Plus size={14} />
                     </button>
-                  </div>
+                  </form>
                 </div>
               )}
             </div>
