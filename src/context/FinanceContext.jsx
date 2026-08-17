@@ -107,34 +107,60 @@ export function FinanceProvider({ children }) {
     }));
   };
 
-  // Export / Import Backup JSON
+  // Export / Import Full Backup JSON (100% of data, investments & checkpoints)
   const exportDataJSON = () => {
-    const jsonStr = JSON.stringify(data, null, 2);
+    const backupPayload = {
+      app: 'Plano Financeiro Familiar',
+      version: '2.0',
+      exportedAt: new Date().toISOString(),
+      data: data,
+      checkpoints: checkpoints
+    };
+
+    const jsonStr = JSON.stringify(backupPayload, null, 2);
     const blob = new Blob([jsonStr], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `plano_financeiro_familiar_${new Date().toISOString().slice(0,10)}.json`;
+    a.download = `plano_financeiro_completo_${new Date().toISOString().slice(0,10)}.json`;
     a.click();
     URL.revokeObjectURL(url);
   };
 
-  const importDataJSON = (file) => {
-    const reader = new FileReader();
-    reader.onload = (e) => {
+  const importDataJSON = (fileContent) => {
+    const handleParseAndApply = (rawContent) => {
       try {
-        const parsed = JSON.parse(e.target.result);
-        if (parsed.perfil && parsed.despesas) {
-          setData(parsed);
-          alert('Backup importado com sucesso!');
+        const parsed = typeof rawContent === 'string' ? JSON.parse(rawContent) : rawContent;
+
+        // Support both full wrapper format { data, checkpoints } and direct data object
+        const mainData = parsed.data || parsed;
+        const mainCheckpoints = parsed.checkpoints || [];
+
+        if (mainData && mainData.perfil && Array.isArray(mainData.despesas)) {
+          const sanitizedData = ensureUniqueItemIds(mainData);
+          setData(sanitizedData);
+
+          if (Array.isArray(mainCheckpoints) && mainCheckpoints.length > 0) {
+            setCheckpoints(mainCheckpoints);
+          }
+
+          alert('Backup financeiro completo importado com sucesso!');
         } else {
-          alert('Formato de arquivo JSON inválido.');
+          alert('Estrutura de arquivo JSON inválida.');
         }
       } catch (err) {
-        alert('Erro ao ler arquivo JSON.');
+        console.error('Erro ao ler arquivo JSON de backup:', err);
+        alert('Erro ao importar o arquivo JSON.');
       }
     };
-    reader.readAsText(file);
+
+    if (fileContent instanceof File || fileContent instanceof Blob) {
+      const reader = new FileReader();
+      reader.onload = (e) => handleParseAndApply(e.target.result);
+      reader.readAsText(fileContent);
+    } else {
+      handleParseAndApply(fileContent);
+    }
   };
 
   // Helper calculation functions

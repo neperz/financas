@@ -29,8 +29,8 @@ function MainAppContent() {
       <FinancialJourneyNav />
 
       <main>
-        {/* Tab 1: Overview (Visão Geral Conectada) */}
-        {activeTab === 'overview' && (
+        {/* Tab 1: Visão Geral & Orçamento Completo */}
+        {(activeTab === 'overview' || !activeTab) && (
           <>
             <FinancialWaterfallSummary />
             <OpenFinanceSection />
@@ -40,87 +40,40 @@ function MainAppContent() {
               <InvestmentsPortfolioSection />
             </div>
 
-            <FinancialRadarChart />
-
-            <AIDiagnosticSection />
             <ExpensesSection />
+            <AIDiagnosticSection />
+            <AboutSection />
+          </>
+        )}
+
+        {/* Tab 2: Checkpoints & Evolução Temporal */}
+        {activeTab === 'checkpoints' && (
+          <>
             <CheckpointsSection />
+            <AboutSection />
+          </>
+        )}
+
+        {/* Tab 3: Simulações & Investimentos */}
+        {activeTab === 'simulators' && (
+          <>
             <WealthExponentiationSection />
             <CompoundInterestSimulator />
-
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(450px, 1fr))', gap: '24px', marginBottom: '24px' }}>
               <GoalsSection />
               <PatrimonyFutureSection />
             </div>
-
-            <BenchmarksSection />
-            <LifeStageSection />
-            <HealthIndicatorsSection />
             <AboutSection />
           </>
         )}
 
-        {/* Tab 2: 1. Orçamento Mensal & Despesas */}
-        {activeTab === 'budget' && (
-          <>
-            <FinancialWaterfallSummary />
-            <OpenFinanceSection />
-            <ExpensesSection />
-            <AboutSection />
-          </>
-        )}
-
-        {/* Tab 3: 2. Reserva de Emergência */}
-        {activeTab === 'reserve' && (
-          <>
-            <EmergencyFundSection />
-            <AboutSection />
-          </>
-        )}
-
-        {/* Tab 4: 3. Renda Extra & Aceleração */}
-        {activeTab === 'exponentiation' && (
-          <>
-            <WealthExponentiationSection />
-            <CompoundInterestSimulator />
-            <AboutSection />
-          </>
-        )}
-
-        {/* Tab 5: 4. Objetivos & Investimentos */}
-        {activeTab === 'goals' && (
-          <>
-            <WealthExponentiationSection />
-            <CompoundInterestSimulator />
-            <GoalsSection />
-            <PatrimonyFutureSection />
-            <AboutSection />
-          </>
-        )}
-
-        {/* Tab 6: 5. Raio-X & Radar da Saúde */}
-        {activeTab === 'radar' && (
+        {/* Tab 4: Raio-X & Saúde Financeira */}
+        {activeTab === 'health' && (
           <>
             <FinancialRadarChart />
-            <AIDiagnosticSection />
             <HealthIndicatorsSection />
-            <AboutSection />
-          </>
-        )}
-
-        {/* Tab 7: 6. Benchmarks & Fases da Vida */}
-        {activeTab === 'benchmarks' && (
-          <>
             <BenchmarksSection />
             <LifeStageSection />
-            <AboutSection />
-          </>
-        )}
-
-        {/* Tab 8: 7. Checkpoints & Evolução */}
-        {activeTab === 'checkpoints' && (
-          <>
-            <CheckpointsSection />
             <AboutSection />
           </>
         )}

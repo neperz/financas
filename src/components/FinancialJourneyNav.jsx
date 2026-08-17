@@ -2,14 +2,10 @@ import React from 'react';
 import { useFinance } from '../context/FinanceContext';
 import {
   LayoutDashboard,
-  Wallet,
-  Shield,
-  Target,
-  PieChart,
-  BarChart3,
-  Zap,
+  History,
   TrendingUp,
-  History
+  PieChart,
+  ShieldCheck
 } from 'lucide-react';
 
 export default function FinancialJourneyNav() {
@@ -17,14 +13,10 @@ export default function FinancialJourneyNav() {
   const overallScore = getOverallHealthScore();
 
   const tabs = [
-    { id: 'overview', label: 'Visão Geral (Dashboard)', icon: LayoutDashboard },
-    { id: 'budget', label: '1. Orçamento Mensal', icon: Wallet },
-    { id: 'reserve', label: '2. Reserva de Emergência', icon: Shield },
-    { id: 'exponentiation', label: '3. Renda Extra & Aceleração', icon: Zap },
-    { id: 'goals', label: '4. Objetivos & Investimentos', icon: Target },
-    { id: 'radar', label: '5. Raio-X & Radar de Saúde', icon: PieChart },
-    { id: 'benchmarks', label: '6. Benchmarks & Fases', icon: BarChart3 },
-    { id: 'checkpoints', label: '7. Checkpoints & Evolução', icon: History }
+    { id: 'overview', label: '📊 Visão Geral & Orçamento', icon: LayoutDashboard },
+    { id: 'checkpoints', label: '📸 Checkpoints & Evolução', icon: History },
+    { id: 'simulators', label: '🚀 Simulações & Investimentos', icon: TrendingUp },
+    { id: 'health', label: '🎯 Raio-X & Saúde Financeira', icon: PieChart }
   ];
 
   const getScoreBadgeColor = (score) => {
@@ -34,31 +26,31 @@ export default function FinancialJourneyNav() {
   };
 
   return (
-    <div style={{ marginBottom: '28px' }}>
-      {/* Dynamic Journey Stepper Header */}
-      <div className="glass-card" style={{ padding: '12px 16px', marginBottom: '16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px' }}>
+    <div style={{ marginBottom: '24px' }}>
+      {/* Header bar with Active Tab name and Score Badge */}
+      <div className="glass-card" style={{ padding: '12px 18px', marginBottom: '14px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-          <span style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase' }}>
-            Jornada de Planejamento:
+          <span style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase' }}>
+            Painel Ativo:
           </span>
-          <span style={{ fontSize: '0.9rem', fontWeight: 600, color: 'var(--accent-blue)' }}>
-            {tabs.find(t => t.id === activeTab)?.label}
+          <span style={{ fontSize: '0.95rem', fontWeight: 800, color: 'var(--accent-blue)' }}>
+            {tabs.find(t => t.id === activeTab)?.label || 'Visão Geral'}
           </span>
         </div>
 
         {/* Global Health Score Badge */}
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px', background: 'var(--bg-secondary)', padding: '6px 14px', borderRadius: '999px', border: '1px solid var(--border-color)' }}>
           <span style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase' }}>
-            Score de Saúde Financeira:
+            Score de Saúde:
           </span>
-          <strong style={{ fontSize: '1.1rem', color: getScoreBadgeColor(overallScore) }}>
+          <strong style={{ fontSize: '1.1rem', fontWeight: 800, color: getScoreBadgeColor(overallScore) }}>
             {overallScore} / 100
           </strong>
         </div>
       </div>
 
-      {/* Tab Buttons */}
-      <div style={{ display: 'flex', gap: '8px', overflowX: 'auto', paddingBottom: '4px' }}>
+      {/* Simplified 4 Primary Nav Tabs */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '10px' }}>
         {tabs.map((tab) => {
           const IconComp = tab.icon;
           const isActive = activeTab === tab.id;
@@ -69,16 +61,19 @@ export default function FinancialJourneyNav() {
               onClick={() => setActiveTab(tab.id)}
               className={`btn ${isActive ? 'btn-primary' : 'btn-outline'}`}
               style={{
-                padding: '10px 16px',
-                fontSize: '0.85rem',
-                whiteSpace: 'nowrap',
+                padding: '12px 14px',
+                fontSize: '0.88rem',
+                fontWeight: isActive ? 800 : 600,
                 borderRadius: 'var(--radius-md)',
                 display: 'flex',
                 alignItems: 'center',
-                gap: '8px'
+                justifyContent: 'center',
+                gap: '8px',
+                boxShadow: isActive ? 'var(--shadow-md)' : 'none',
+                borderColor: isActive ? 'var(--accent-blue)' : 'var(--border-color)'
               }}
             >
-              <IconComp size={16} />
+              <IconComp size={18} />
               {tab.label}
             </button>
           );
