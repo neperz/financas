@@ -4,17 +4,40 @@ import { fetchMarketIndicators } from '../services/marketApi';
 
 const FinanceContext = createContext();
 
+export function ensureUniqueItemIds(dataObj) {
+  if (!dataObj || !Array.isArray(dataObj.despesas)) return dataObj;
+
+  const seenIds = new Set();
+  const updatedDespesas = dataObj.despesas.map(cat => ({
+    ...cat,
+    itens: (cat.itens || []).map((item, idx) => {
+      let itemId = item.id;
+      if (!itemId || seenIds.has(itemId)) {
+        itemId = `item_${Date.now()}_${idx}_${Math.random().toString(36).substring(2, 9)}`;
+      }
+      seenIds.add(itemId);
+      return { ...item, id: itemId };
+    })
+  }));
+
+  return {
+    ...dataObj,
+    despesas: updatedDespesas
+  };
+}
+
 export function FinanceProvider({ children }) {
   const [data, setData] = useState(() => {
     const saved = localStorage.getItem('plano_financeiro_data');
     if (saved) {
       try {
-        return JSON.parse(saved);
+        const parsed = JSON.parse(saved);
+        return ensureUniqueItemIds(parsed);
       } catch (e) {
         console.error('Failed to parse saved financial data:', e);
       }
     }
-    return INITIAL_FINANCIAL_DATA;
+    return ensureUniqueItemIds(INITIAL_FINANCIAL_DATA);
   });
 
   const [marketData, setMarketData] = useState({
@@ -277,7 +300,8 @@ export function FinanceProvider({ children }) {
   const loadCheckpoint = (id) => {
     const target = checkpoints.find(c => c.id === id);
     if (target && target.snapshotData) {
-      setData(JSON.parse(JSON.stringify(target.snapshotData)));
+      const restored = JSON.parse(JSON.stringify(target.snapshotData));
+      setData(ensureUniqueItemIds(restored));
     }
   };
 
@@ -311,7 +335,7 @@ export function FinanceProvider({ children }) {
 
   const addItemDespesa = (categoriaId, nome, valor) => {
     const newItem = {
-      id: 'item_' + Date.now(),
+      id: 'item_' + Date.now() + '_' + Math.random().toString(36).substring(2, 9),
       nome,
       valor: Number(valor) || 0
     };
