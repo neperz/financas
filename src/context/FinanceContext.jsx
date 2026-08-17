@@ -387,6 +387,68 @@ export function FinanceProvider({ children }) {
     });
   };
 
+  const applyTransactionsToBudget = (transactionsList) => {
+    if (!transactionsList || transactionsList.length === 0) return;
+
+    const categoryTotalsMap = new Map();
+    transactionsList.forEach(tx => {
+      const key = `${tx.category}_${tx.description.toLowerCase().trim()}`;
+      if (categoryTotalsMap.has(key)) {
+        const current = categoryTotalsMap.get(key);
+        current.amount += tx.amount;
+      } else {
+        categoryTotalsMap.set(key, {
+          categoryId: tx.category,
+          description: tx.description.trim(),
+          amount: tx.amount
+        });
+      }
+    });
+
+    setData(prev => {
+      const seenIds = new Set();
+      prev.despesas.forEach(c => (c.itens || []).forEach(i => seenIds.add(String(i.id))));
+
+      const updatedDespesas = prev.despesas.map(cat => {
+        const catCopy = { ...cat, itens: [...(cat.itens || [])] };
+
+        categoryTotalsMap.forEach((entry) => {
+          if (entry.categoryId === cat.id) {
+            const existingIndex = catCopy.itens.findIndex(i =>
+              i.nome.toLowerCase().trim() === entry.description.toLowerCase().trim()
+            );
+
+            if (existingIndex >= 0) {
+              catCopy.itens[existingIndex] = {
+                ...catCopy.itens[existingIndex],
+                valor: entry.amount
+              };
+            } else {
+              let newId = `item_pluggy_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
+              while (seenIds.has(newId)) {
+                newId = `item_pluggy_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
+              }
+              seenIds.add(newId);
+
+              catCopy.itens.push({
+                id: newId,
+                nome: entry.description,
+                valor: entry.amount
+              });
+            }
+          }
+        });
+
+        return catCopy;
+      });
+
+      return ensureUniqueItemIds({
+        ...prev,
+        despesas: updatedDespesas
+      });
+    });
+  };
+
   const updateReservaEmergencia = (novosCampos) => {
     setData(prev => ({
       ...prev,
@@ -490,6 +552,7 @@ export function FinanceProvider({ children }) {
       addItemDespesa,
       deleteItemDespesa,
       moveItemDespesa,
+      applyTransactionsToBudget,
       updateReservaEmergencia,
       updateObjetivo,
       addObjetivo,

@@ -24,7 +24,7 @@ const getRecentMonths = () => {
 };
 
 export default function PluggyConnectModal({ isOpen, onClose }) {
-  const { data, updateItemDespesa, addItemDespesa, syncPluggyInvestments } = useFinance();
+  const { data, applyTransactionsToBudget, syncPluggyInvestments } = useFinance();
 
   const availableMonths = getRecentMonths();
   const [selectedMonth, setSelectedMonth] = useState(availableMonths[0].value);
@@ -139,36 +139,10 @@ export default function PluggyConnectModal({ isOpen, onClose }) {
   };
 
   const handleApplyToBudget = () => {
-    // 1. Group transactions by category and description
-    const categoryTotalsMap = new Map();
-
-    transactions.forEach(tx => {
-      const key = `${tx.category}_${tx.description.toLowerCase().trim()}`;
-      if (categoryTotalsMap.has(key)) {
-        const current = categoryTotalsMap.get(key);
-        current.amount += tx.amount;
-      } else {
-        categoryTotalsMap.set(key, {
-          categoryId: tx.category,
-          description: tx.description.trim(),
-          amount: tx.amount
-        });
-      }
-    });
-
-    categoryTotalsMap.forEach((entry) => {
-      const category = data.despesas.find(c => c.id === entry.categoryId);
-      if (category) {
-        const existingItem = category.itens.find(i => 
-          i.nome.toLowerCase().trim() === entry.description.toLowerCase().trim()
-        );
-        if (existingItem) {
-          updateItemDespesa(entry.categoryId, existingItem.id, entry.amount);
-        } else {
-          addItemDespesa(entry.categoryId, entry.description, entry.amount);
-        }
-      }
-    });
+    // Apply transactions atomically to budget with unique IDs
+    if (transactions && transactions.length > 0) {
+      applyTransactionsToBudget(transactions);
+    }
 
     if (investments && investments.length > 0) {
       syncPluggyInvestments(investments);
