@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { useFinance } from '../context/FinanceContext';
 import { Info, X, Shield, TrendingUp, Building, Calendar, Tag, DollarSign, CheckCircle2, Save, Edit3 } from 'lucide-react';
 
@@ -50,17 +51,23 @@ export default function ItemDetailsModal({ isOpen, onClose, details }) {
     }, 1200);
   };
 
-  return (
+  const modalNode = (
     <div style={{
       position: 'fixed',
-      inset: 0,
-      backgroundColor: 'rgba(0, 0, 0, 0.75)',
+      top: 0,
+      left: 0,
+      right: 0,
+      bottom: 0,
+      width: '100vw',
+      height: '100vh',
+      backgroundColor: 'rgba(0, 0, 0, 0.8)',
       backdropFilter: 'blur(8px)',
       display: 'flex',
       alignItems: 'center',
-      justify: 'center',
-      zIndex: 120,
-      padding: '16px'
+      justifyContent: 'center',
+      zIndex: 99999,
+      padding: '16px',
+      boxSizing: 'border-box'
     }}>
       <div className="glass-card" style={{
         maxWidth: '520px',
@@ -69,7 +76,8 @@ export default function ItemDetailsModal({ isOpen, onClose, details }) {
         background: 'var(--bg-secondary)',
         position: 'relative',
         borderRadius: 'var(--radius-lg)',
-        boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.5), 0 10px 10px -5px rgba(0, 0, 0, 0.04)'
+        boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.6)',
+        margin: 'auto'
       }}>
         {/* Header */}
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '18px', borderBottom: '1px solid var(--border-color)', paddingBottom: '12px' }}>
@@ -192,4 +200,6 @@ export default function ItemDetailsModal({ isOpen, onClose, details }) {
       </div>
     </div>
   );
+
+  return typeof document !== 'undefined' ? createPortal(modalNode, document.body) : null;
 }

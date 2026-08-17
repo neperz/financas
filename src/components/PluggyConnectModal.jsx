@@ -1,4 +1,5 @@
 import React, { useState, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import { useFinance } from '../context/FinanceContext';
 import { fetchAllMeuPluggyTransactions, fetchMeuPluggyInvestments } from '../services/pluggyService';
 import { loginWithGooglePluggy } from '../services/googleAuthService';
@@ -162,17 +163,23 @@ export default function PluggyConnectModal({ isOpen, onClose }) {
 
   const totalInvestmentsBalance = investments.reduce((acc, inv) => acc + inv.balance, 0);
 
-  return (
+  const modalNode = (
     <div style={{
       position: 'fixed',
-      inset: 0,
+      top: 0,
+      left: 0,
+      right: 0,
+      bottom: 0,
+      width: '100vw',
+      height: '100vh',
       backgroundColor: 'rgba(0, 0, 0, 0.8)',
       backdropFilter: 'blur(10px)',
       display: 'flex',
       alignItems: 'center',
-      justify: 'center',
-      zIndex: 110,
-      padding: '16px'
+      justifyContent: 'center',
+      zIndex: 99999,
+      padding: '16px',
+      boxSizing: 'border-box'
     }}>
       <div className="glass-card" style={{
         maxWidth: '740px',
@@ -181,7 +188,8 @@ export default function PluggyConnectModal({ isOpen, onClose }) {
         background: 'var(--bg-secondary)',
         position: 'relative',
         maxHeight: '90vh',
-        overflowY: 'auto'
+        overflowY: 'auto',
+        margin: 'auto'
       }}>
         {/* Header */}
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', borderBottom: '1px solid var(--border-color)', paddingBottom: '14px' }}>
@@ -425,4 +433,6 @@ export default function PluggyConnectModal({ isOpen, onClose }) {
       </div>
     </div>
   );
+
+  return typeof document !== 'undefined' ? createPortal(modalNode, document.body) : null;
 }
