@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useFinance } from '../context/FinanceContext';
+import ItemDetailsModal from './ItemDetailsModal';
 import {
   Home,
   ShoppingBag,
@@ -53,6 +54,8 @@ export default function ExpensesSection() {
   const [dragOverCatId, setDragOverCatId] = useState(null);
   const [draggedItem, setDraggedItem] = useState(null);
 
+  const [selectedDetailsItem, setSelectedDetailsItem] = useState(null);
+
   const toggleExpand = (catId) => {
     setExpandedCat(prev => ({
       ...prev,
@@ -88,6 +91,13 @@ export default function ExpensesSection() {
 
   return (
     <section className="glass-card" style={{ padding: '24px', marginBottom: '32px' }}>
+      {/* Item Details Modal */}
+      <ItemDetailsModal
+        isOpen={Boolean(selectedDetailsItem)}
+        onClose={() => setSelectedDetailsItem(null)}
+        details={selectedDetailsItem}
+      />
+
       {/* Header */}
       <div style={{ marginBottom: '20px', borderBottom: '1px solid var(--border-color)', paddingBottom: '16px' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '16px' }}>
@@ -133,7 +143,7 @@ export default function ExpensesSection() {
         {/* Drag and Drop Tip Banner */}
         <div style={{ background: 'rgba(59, 130, 246, 0.08)', border: '1px solid rgba(59, 130, 246, 0.2)', padding: '8px 14px', borderRadius: 'var(--radius-sm)', marginTop: '12px', display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.8rem', color: 'var(--accent-blue)' }}>
           <Move size={15} />
-          <span><strong>Dica de Usabilidade:</strong> Arraste e solte (Drag & Drop) qualquer item entre os cards das 8 categorias para reclassificar despesas facilmente!</span>
+          <span><strong>Dica:</strong> Arraste (Drag & Drop) itens para trocar de categoria ou clique no botão <strong>(i)</strong> para ver a descrição completa sem truncamento!</span>
         </div>
       </div>
 
@@ -275,7 +285,7 @@ export default function ExpensesSection() {
                 </button>
               </div>
 
-              {/* Collapsible Sub-items List with Drag & Drop */}
+              {/* Collapsible Sub-items List with Drag & Drop & Details Modal Trigger */}
               {isExpanded && (
                 <div style={{
                   borderTop: '1px solid var(--border-color)',
@@ -318,9 +328,44 @@ export default function ExpensesSection() {
                         >
                           <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flex: 1, minWidth: 0 }}>
                             <GripVertical size={14} color="var(--text-muted)" style={{ cursor: 'grab', flexShrink: 0 }} />
-                            <span style={{ color: 'var(--text-secondary)', fontWeight: 600, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                            
+                            <span
+                              onClick={() => setSelectedDetailsItem({
+                                type: 'expense',
+                                fullName: item.nome,
+                                value: item.valor,
+                                categoryName: categoria.nome,
+                                source: 'Planejamento Orçamentário'
+                              })}
+                              style={{
+                                color: 'var(--text-secondary)',
+                                fontWeight: 600,
+                                whiteSpace: 'nowrap',
+                                overflow: 'hidden',
+                                textOverflow: 'ellipsis',
+                                cursor: 'pointer'
+                              }}
+                              title="Clique para ver o texto completo sem truncamento"
+                            >
                               {item.nome}
                             </span>
+
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setSelectedDetailsItem({
+                                  type: 'expense',
+                                  fullName: item.nome,
+                                  value: item.valor,
+                                  categoryName: categoria.nome,
+                                  source: 'Planejamento Orçamentário'
+                                });
+                              }}
+                              style={{ background: 'none', border: 'none', color: 'var(--accent-blue)', cursor: 'pointer', padding: '2px', display: 'inline-flex', alignItems: 'center', flexShrink: 0 }}
+                              title="Ver detalhes deste lançamento"
+                            >
+                              <Info size={13} />
+                            </button>
                           </div>
 
                           <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexShrink: 0 }}>

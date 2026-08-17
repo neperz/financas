@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useFinance } from '../context/FinanceContext';
+import ItemDetailsModal from './ItemDetailsModal';
 import {
   TrendingUp,
   Plus,
@@ -10,7 +11,8 @@ import {
   DollarSign,
   ArrowUpRight,
   ExternalLink,
-  Sparkles
+  Sparkles,
+  Info
 } from 'lucide-react';
 
 export default function InvestmentsPortfolioSection() {
@@ -20,6 +22,8 @@ export default function InvestmentsPortfolioSection() {
   const [assetType, setAssetType] = useState('Ações');
   const [assetBalance, setAssetBalance] = useState('');
   const [assetRate, setAssetRate] = useState('');
+
+  const [selectedDetailsAsset, setSelectedDetailsAsset] = useState(null);
 
   const investments = data.investimentos || [];
   const totalBalance = investments.reduce((acc, inv) => acc + (Number(inv.balance) || 0), 0);
@@ -57,6 +61,13 @@ export default function InvestmentsPortfolioSection() {
 
   return (
     <section className="glass-card" style={{ padding: '24px', height: '100%', minHeight: '480px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
+      {/* Item Details Modal for Investment Assets */}
+      <ItemDetailsModal
+        isOpen={Boolean(selectedDetailsAsset)}
+        onClose={() => setSelectedDetailsAsset(null)}
+        details={selectedDetailsAsset}
+      />
+
       <div style={{ display: 'flex', flexDirection: 'column', flex: 1 }}>
         {/* Header */}
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', borderBottom: '1px solid var(--border-color)', paddingBottom: '14px' }}>
@@ -80,7 +91,7 @@ export default function InvestmentsPortfolioSection() {
           </div>
         </div>
 
-        {/* Assets List filling full height of card */}
+        {/* Assets List filling full height of card with Details Modal Trigger */}
         {investments.length > 0 ? (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginBottom: '16px', flex: 1, minHeight: '260px', overflowY: 'auto', paddingRight: '4px' }}>
             {investments.map((inv) => (
@@ -97,28 +108,57 @@ export default function InvestmentsPortfolioSection() {
                   gap: '12px'
                 }}
               >
-                <div>
+                <div style={{ flex: 1, minWidth: 0 }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    <strong style={{ fontSize: '0.9rem', color: 'var(--text-primary)' }}>
+                    <strong
+                      onClick={() => setSelectedDetailsAsset({
+                        type: 'investment',
+                        fullName: inv.name || inv.code,
+                        value: inv.balance,
+                        assetType: inv.type,
+                        annualRate: inv.annualRate,
+                        source: inv.source
+                      })}
+                      style={{ fontSize: '0.9rem', color: 'var(--text-primary)', cursor: 'pointer', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}
+                      title="Clique para ver detalhes completos do ativo"
+                    >
                       {inv.code || inv.name}
                     </strong>
+
+                    <button
+                      onClick={() => setSelectedDetailsAsset({
+                        type: 'investment',
+                        fullName: inv.name || inv.code,
+                        value: inv.balance,
+                        assetType: inv.type,
+                        annualRate: inv.annualRate,
+                        source: inv.source
+                      })}
+                      style={{ background: 'none', border: 'none', color: 'var(--accent-green)', cursor: 'pointer', padding: '2px', display: 'inline-flex', alignItems: 'center', flexShrink: 0 }}
+                      title="Ver detalhes completos do ativo"
+                    >
+                      <Info size={13} />
+                    </button>
+
                     <span style={{
                       fontSize: '0.68rem',
                       fontWeight: 700,
                       padding: '2px 8px',
                       borderRadius: '999px',
                       background: 'rgba(59, 130, 246, 0.1)',
-                      color: getTypeBadgeColor(inv.type)
+                      color: getTypeBadgeColor(inv.type),
+                      flexShrink: 0
                     }}>
                       {inv.type}
                     </span>
                   </div>
-                  <span style={{ fontSize: '0.74rem', color: 'var(--text-muted)', display: 'block', marginTop: '2px' }}>
+
+                  <span style={{ fontSize: '0.74rem', color: 'var(--text-muted)', display: 'block', marginTop: '2px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                     {inv.name} • {inv.source || 'Open Finance'}
                   </span>
                 </div>
 
-                <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexShrink: 0 }}>
                   <div style={{ textAlign: 'right' }}>
                     <div style={{ fontSize: '0.95rem', fontWeight: 800, color: 'var(--text-primary)' }}>
                       {formatCurrency(inv.balance)}
