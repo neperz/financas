@@ -332,6 +332,8 @@ export default function ExpensesSection() {
                             <span
                               onClick={() => setSelectedDetailsItem({
                                 type: 'expense',
+                                itemId: item.id,
+                                categoryId: categoria.id,
                                 fullName: item.nome,
                                 value: item.valor,
                                 categoryName: categoria.nome,
@@ -345,7 +347,7 @@ export default function ExpensesSection() {
                                 textOverflow: 'ellipsis',
                                 cursor: 'pointer'
                               }}
-                              title="Clique para ver o texto completo sem truncamento"
+                              title="Clique para ver detalhes e reclassificar categoria"
                             >
                               {item.nome}
                             </span>
@@ -355,6 +357,8 @@ export default function ExpensesSection() {
                                 e.stopPropagation();
                                 setSelectedDetailsItem({
                                   type: 'expense',
+                                  itemId: item.id,
+                                  categoryId: categoria.id,
                                   fullName: item.nome,
                                   value: item.valor,
                                   categoryName: categoria.nome,
@@ -362,7 +366,7 @@ export default function ExpensesSection() {
                                 });
                               }}
                               style={{ background: 'none', border: 'none', color: 'var(--accent-blue)', cursor: 'pointer', padding: '2px', display: 'inline-flex', alignItems: 'center', flexShrink: 0 }}
-                              title="Ver detalhes deste lançamento"
+                              title="Ver detalhes e editar lançamento"
                             >
                               <Info size={13} />
                             </button>
